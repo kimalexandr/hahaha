@@ -1,5 +1,9 @@
 name: Flutter Android CI
 
+# 🔐 ЭТОТ БЛОК РАЗРЕШАЕТ ПУШ В РЕПОЗИТОРИЙ
+permissions:
+  contents: write
+
 on:
   push:
     branches: [ main, develop ]
@@ -12,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }} # Используем токен с правами выше
           fetch-depth: 0
 
       - uses: subosito/flutter-action@v2
@@ -23,7 +27,7 @@ jobs:
       - run: flutter pub get
       - run: dart analyze
 
-      # 🔧 Авто-форматирование с коммитом (только на push, не в PR)
+      # 🔧 Авто-форматирование с коммитом (только на push)
       - name: Format code and auto-commit if changed
         if: github.event_name == 'push'
         run: |
@@ -36,7 +40,7 @@ jobs:
             git push
           fi
 
-      - run: dart format --set-exit-if-changed .  # финальная проверка
+      - run: dart format --set-exit-if-changed .
       - run: flutter test
 
       - name: Build APK & App Bundle
