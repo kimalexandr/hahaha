@@ -38,7 +38,9 @@ class EditProfilePage extends StatelessWidget {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Не удалось сохранить профиль. Попробуйте еще раз.'),
+                      content: Text(
+                        'Не удалось сохранить профиль. Попробуйте еще раз.',
+                      ),
                     ),
                   );
                 }

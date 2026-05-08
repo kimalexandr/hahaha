@@ -36,10 +36,9 @@ class HomeRemoteStorage {
   }
 
   Future<void> saveProfile(UserProfile profile) async {
-    await _profilesRef.doc(profile.ownerId).set(
-      profile.toMap(),
-      SetOptions(merge: true),
-    );
+    await _profilesRef
+        .doc(profile.ownerId)
+        .set(profile.toMap(), SetOptions(merge: true));
   }
 
   Future<Map<String, List<String>>> readCommentsMap() async {

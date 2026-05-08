@@ -10,7 +10,9 @@ class HomeLocalStorage {
   static const String _notificationsKey = 'notifications';
 
   Future<Box<dynamic>> _openBox() async {
-    return Hive.isBoxOpen(_boxName) ? Hive.box(_boxName) : Hive.openBox(_boxName);
+    return Hive.isBoxOpen(_boxName)
+        ? Hive.box(_boxName)
+        : Hive.openBox(_boxName);
   }
 
   Future<void> saveEvents(List<Event> events) async {

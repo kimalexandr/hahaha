@@ -43,7 +43,8 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<bool> isNewUser() async {
     final user = _firebaseAuth.currentUser;
     if (user == null) return true;
-    final profileDoc = await _firestore.collection('profiles').doc(user.uid).get();
+    final profileDoc =
+        await _firestore.collection('profiles').doc(user.uid).get();
     if (!profileDoc.exists) return true;
     return !(profileDoc.data()?['profileCreated'] as bool? ?? false);
   }

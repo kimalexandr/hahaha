@@ -40,7 +40,9 @@ class EventCard extends StatelessWidget {
             SizedBox(
               height: 220,
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
                 child: PageView.builder(
                   itemCount: event.photos.length,
                   itemBuilder:
@@ -59,7 +61,10 @@ class EventCard extends StatelessWidget {
                 children: [
                   Text(
                     event.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -69,7 +74,11 @@ class EventCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                      Icon(
+                        Icons.calendar_today,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         DateFormat('d MMM, HH:mm', 'ru').format(event.date),
@@ -78,7 +87,10 @@ class EventCard extends StatelessWidget {
                       const SizedBox(width: 12),
                       Icon(Icons.place, size: 16, color: Colors.grey[600]),
                       const SizedBox(width: 4),
-                      Text(event.place, style: TextStyle(color: Colors.grey[700])),
+                      Text(
+                        event.place,
+                        style: TextStyle(color: Colors.grey[700]),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -88,7 +100,9 @@ class EventCard extends StatelessWidget {
                     children: [
                       IconButton(
                         icon: Icon(
-                          event.isLiked ? Icons.favorite : Icons.favorite_border,
+                          event.isLiked
+                              ? Icons.favorite
+                              : Icons.favorite_border,
                           color: event.isLiked ? Colors.red : Colors.grey[600],
                         ),
                         onPressed: onLike,
@@ -109,22 +123,34 @@ class EventCard extends StatelessWidget {
                           event.hasTicket
                               ? Icons.confirmation_num
                               : Icons.confirmation_num_outlined,
-                          color: event.hasTicket ? Colors.orange : Colors.grey[600],
+                          color:
+                              event.hasTicket
+                                  ? Colors.orange
+                                  : Colors.grey[600],
                         ),
                         onPressed: event.hasTicket ? null : onBuyTicket,
-                        tooltip: event.hasTicket ? 'Билет куплен' : 'Купить билет',
+                        tooltip:
+                            event.hasTicket ? 'Билет куплен' : 'Купить билет',
                       ),
                       const SizedBox(width: 8),
                       IconButton(
                         icon: Icon(
-                          event.isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                          color: event.isBookmarked ? Colors.purple : Colors.grey[600],
+                          event.isBookmarked
+                              ? Icons.bookmark
+                              : Icons.bookmark_border,
+                          color:
+                              event.isBookmarked
+                                  ? Colors.purple
+                                  : Colors.grey[600],
                         ),
                         onPressed: onBookmark,
                       ),
                       const SizedBox(width: 8),
                       IconButton(
-                        icon: const Icon(Icons.comment_outlined, color: Colors.grey),
+                        icon: const Icon(
+                          Icons.comment_outlined,
+                          color: Colors.grey,
+                        ),
                         onPressed: onComment,
                       ),
                       Text('${event.comments}'),
@@ -172,8 +198,14 @@ class _ProfilePageState extends State<ProfilePage> {
   void _saveProfile() {
     Navigator.of(context).pop(
       widget.initialProfile.copyWith(
-        name: _nameController.text.trim().isEmpty ? 'Пользователь' : _nameController.text.trim(),
-        bio: _bioController.text.trim().isEmpty ? 'Без описания' : _bioController.text.trim(),
+        name:
+            _nameController.text.trim().isEmpty
+                ? 'Пользователь'
+                : _nameController.text.trim(),
+        bio:
+            _bioController.text.trim().isEmpty
+                ? 'Без описания'
+                : _bioController.text.trim(),
         role: _role,
       ),
     );
@@ -187,7 +219,10 @@ class _ProfilePageState extends State<ProfilePage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Имя')),
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: 'Имя'),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: _bioController,
@@ -200,7 +235,10 @@ class _ProfilePageState extends State<ProfilePage> {
               decoration: const InputDecoration(labelText: 'Роль'),
               items: const [
                 DropdownMenuItem(value: 'user', child: Text('Пользователь')),
-                DropdownMenuItem(value: 'organizer', child: Text('Организатор')),
+                DropdownMenuItem(
+                  value: 'organizer',
+                  child: Text('Организатор'),
+                ),
               ],
               onChanged: (value) {
                 if (value == null) return;
@@ -212,7 +250,10 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(onPressed: _saveProfile, child: const Text('Сохранить профиль')),
+              child: ElevatedButton(
+                onPressed: _saveProfile,
+                child: const Text('Сохранить профиль'),
+              ),
             ),
           ],
         ),
@@ -239,7 +280,9 @@ class MyEventsPage extends StatelessWidget {
       appBar: AppBar(title: const Text('Мои мероприятия')),
       body:
           events.isEmpty
-              ? const Center(child: Text('Вы еще не добавили ни одного мероприятия'))
+              ? const Center(
+                child: Text('Вы еще не добавили ни одного мероприятия'),
+              )
               : ListView.builder(
                 padding: const EdgeInsets.all(12),
                 itemCount: events.length,
@@ -247,7 +290,9 @@ class MyEventsPage extends StatelessWidget {
                   final event = events[index];
                   return ListTile(
                     title: Text(event.title),
-                    subtitle: Text(DateFormat('d MMM, HH:mm', 'ru').format(event.date)),
+                    subtitle: Text(
+                      DateFormat('d MMM, HH:mm', 'ru').format(event.date),
+                    ),
                     trailing: PopupMenuButton<String>(
                       onSelected: (value) {
                         if (value == 'open') onOpenEvent(event);
@@ -256,9 +301,18 @@ class MyEventsPage extends StatelessWidget {
                       },
                       itemBuilder:
                           (_) => const [
-                            PopupMenuItem(value: 'open', child: Text('Открыть')),
-                            PopupMenuItem(value: 'edit', child: Text('Редактировать')),
-                            PopupMenuItem(value: 'delete', child: Text('Удалить')),
+                            PopupMenuItem(
+                              value: 'open',
+                              child: Text('Открыть'),
+                            ),
+                            PopupMenuItem(
+                              value: 'edit',
+                              child: Text('Редактировать'),
+                            ),
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Text('Удалить'),
+                            ),
                           ],
                     ),
                     onTap: () => onOpenEvent(event),
@@ -272,7 +326,11 @@ class MyEventsPage extends StatelessWidget {
 class MyActivityPage extends StatelessWidget {
   final List<Event> events;
   final void Function(Event) onOpenEvent;
-  const MyActivityPage({super.key, required this.events, required this.onOpenEvent});
+  const MyActivityPage({
+    super.key,
+    required this.events,
+    required this.onOpenEvent,
+  });
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -305,7 +363,11 @@ class MyActivityPage extends StatelessWidget {
 class FavoritesPage extends StatelessWidget {
   final List<Event> events;
   final void Function(Event) onOpenEvent;
-  const FavoritesPage({super.key, required this.events, required this.onOpenEvent});
+  const FavoritesPage({
+    super.key,
+    required this.events,
+    required this.onOpenEvent,
+  });
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -352,7 +414,10 @@ class MyTicketsPage extends StatelessWidget {
                   final event = events[index];
                   final ticketCode = 'EVT-${event.id.hashCode.abs()}';
                   return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(12),
                       child: Column(
@@ -418,11 +483,13 @@ class _CommentsPageState extends State<CommentsPage> {
     super.initState();
     _comments = List<String>.from(widget.initialComments);
   }
+
   @override
   void dispose() {
     _commentController.dispose();
     super.dispose();
   }
+
   void _addComment() {
     final text = _commentController.text.trim();
     if (text.isEmpty) return;
@@ -430,6 +497,7 @@ class _CommentsPageState extends State<CommentsPage> {
     widget.onChanged(_comments);
     _commentController.clear();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -443,10 +511,15 @@ class _CommentsPageState extends State<CommentsPage> {
                 Expanded(
                   child: TextField(
                     controller: _commentController,
-                    decoration: const InputDecoration(hintText: 'Написать комментарий'),
+                    decoration: const InputDecoration(
+                      hintText: 'Написать комментарий',
+                    ),
                   ),
                 ),
-                IconButton(onPressed: _addComment, icon: const Icon(Icons.send)),
+                IconButton(
+                  onPressed: _addComment,
+                  icon: const Icon(Icons.send),
+                ),
               ],
             ),
           ),
@@ -456,7 +529,9 @@ class _CommentsPageState extends State<CommentsPage> {
                     ? const Center(child: Text('Комментариев пока нет'))
                     : ListView.builder(
                       itemCount: _comments.length,
-                      itemBuilder: (context, index) => ListTile(title: Text(_comments[index])),
+                      itemBuilder:
+                          (context, index) =>
+                              ListTile(title: Text(_comments[index])),
                     ),
           ),
         ],
@@ -491,14 +566,18 @@ class OrganizerProfilePage extends StatelessWidget {
           Expanded(
             child:
                 events.isEmpty
-                    ? const Center(child: Text('У организатора пока нет событий'))
+                    ? const Center(
+                      child: Text('У организатора пока нет событий'),
+                    )
                     : ListView.builder(
                       itemCount: events.length,
                       itemBuilder: (context, index) {
                         final event = events[index];
                         return ListTile(
                           title: Text(event.title),
-                          subtitle: Text(DateFormat('d MMM, HH:mm', 'ru').format(event.date)),
+                          subtitle: Text(
+                            DateFormat('d MMM, HH:mm', 'ru').format(event.date),
+                          ),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => onOpenEvent(event),
                         );
@@ -532,7 +611,10 @@ class EventDetailsPage extends StatelessWidget {
             height: 220,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: RetryableNetworkImage(url: event.photos.first, fit: BoxFit.cover),
+              child: RetryableNetworkImage(
+                url: event.photos.first,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -543,7 +625,11 @@ class EventDetailsPage extends StatelessWidget {
           const SizedBox(height: 8),
           Text('${event.category} • ${event.city}'),
           const SizedBox(height: 8),
-          Text(event.price == 0 ? 'Цена: Бесплатно' : 'Цена: ${event.price.toStringAsFixed(0)} тг'),
+          Text(
+            event.price == 0
+                ? 'Цена: Бесплатно'
+                : 'Цена: ${event.price.toStringAsFixed(0)} тг',
+          ),
           const SizedBox(height: 8),
           Text(event.place, style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 16),
@@ -610,7 +696,11 @@ class _RetryableNetworkImageState extends State<RetryableNetworkImage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.broken_image_outlined, color: Colors.grey, size: 32),
+                const Icon(
+                  Icons.broken_image_outlined,
+                  color: Colors.grey,
+                  size: 32,
+                ),
                 const SizedBox(height: 6),
                 TextButton.icon(
                   onPressed: _retry,
@@ -659,7 +749,6 @@ class _AddEventFormState extends State<AddEventForm> {
     }
   }
 
-
   void _pickDate() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -670,10 +759,19 @@ class _AddEventFormState extends State<AddEventForm> {
       locale: const Locale('ru'),
     );
     if (picked != null) {
-      final time = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+      );
       if (time != null) {
         setState(() {
-          _selectedDate = DateTime(picked.year, picked.month, picked.day, time.hour, time.minute);
+          _selectedDate = DateTime(
+            picked.year,
+            picked.month,
+            picked.day,
+            time.hour,
+            time.minute,
+          );
         });
       }
     }
@@ -691,12 +789,16 @@ class _AddEventFormState extends State<AddEventForm> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Выберите дату и время')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Выберите дату и время')));
       return;
     }
     if (_photoUrls.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Добавьте хотя бы одно фото (URL) и нажмите иконку +')),
+        const SnackBar(
+          content: Text('Добавьте хотя бы одно фото (URL) и нажмите иконку +'),
+        ),
       );
       return;
     }
@@ -748,12 +850,16 @@ class _AddEventFormState extends State<AddEventForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Новое мероприятие', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+            const Text(
+              'Новое мероприятие',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _titleController,
               decoration: const InputDecoration(labelText: 'Название'),
-              validator: (v) => v == null || v.isEmpty ? 'Введите название' : null,
+              validator:
+                  (v) => v == null || v.isEmpty ? 'Введите название' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -774,19 +880,26 @@ class _AddEventFormState extends State<AddEventForm> {
               items: const [
                 DropdownMenuItem(value: 'Музыка', child: Text('Музыка')),
                 DropdownMenuItem(value: 'Бизнес', child: Text('Бизнес')),
-                DropdownMenuItem(value: 'Образование', child: Text('Образование')),
+                DropdownMenuItem(
+                  value: 'Образование',
+                  child: Text('Образование'),
+                ),
                 DropdownMenuItem(value: 'Спорт', child: Text('Спорт')),
               ],
-              onChanged: (value) => setState(() => _category = value ?? _category),
+              onChanged:
+                  (value) => setState(() => _category = value ?? _category),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _priceController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Цена (0 = бесплатно)'),
+              decoration: const InputDecoration(
+                labelText: 'Цена (0 = бесплатно)',
+              ),
               validator: (v) {
                 final parsed = double.tryParse((v ?? '').trim());
-                if (parsed == null || parsed < 0) return 'Введите корректную цену';
+                if (parsed == null || parsed < 0)
+                  return 'Введите корректную цену';
                 return null;
               },
             ),
@@ -795,7 +908,8 @@ class _AddEventFormState extends State<AddEventForm> {
               controller: _descriptionController,
               decoration: const InputDecoration(labelText: 'Описание'),
               maxLines: 3,
-              validator: (v) => v == null || v.isEmpty ? 'Введите описание' : null,
+              validator:
+                  (v) => v == null || v.isEmpty ? 'Введите описание' : null,
             ),
             const SizedBox(height: 12),
             Row(
@@ -804,7 +918,10 @@ class _AddEventFormState extends State<AddEventForm> {
                   child: Text(
                     _selectedDate == null
                         ? 'Дата и время не выбраны'
-                        : DateFormat('d MMM, HH:mm', 'ru').format(_selectedDate!),
+                        : DateFormat(
+                          'd MMM, HH:mm',
+                          'ru',
+                        ).format(_selectedDate!),
                   ),
                 ),
                 TextButton.icon(
@@ -821,10 +938,15 @@ class _AddEventFormState extends State<AddEventForm> {
                 Expanded(
                   child: TextField(
                     controller: _photoController,
-                    decoration: const InputDecoration(hintText: 'Вставьте ссылку на фото'),
+                    decoration: const InputDecoration(
+                      hintText: 'Вставьте ссылку на фото',
+                    ),
                   ),
                 ),
-                IconButton(icon: const Icon(Icons.add_a_photo), onPressed: _addPhoto),
+                IconButton(
+                  icon: const Icon(Icons.add_a_photo),
+                  onPressed: _addPhoto,
+                ),
               ],
             ),
             SizedBox(
@@ -857,11 +979,15 @@ class _AddEventFormState extends State<AddEventForm> {
                 onPressed: _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.purpleAccent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: Text(
-                  widget.initialEvent == null ? 'Добавить' : 'Сохранить изменения',
+                  widget.initialEvent == null
+                      ? 'Добавить'
+                      : 'Сохранить изменения',
                   style: const TextStyle(fontSize: 18),
                 ),
               ),

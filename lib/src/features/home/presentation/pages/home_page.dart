@@ -177,14 +177,19 @@ class _HomePageState extends State<HomePage> {
     final nearBottom =
         _scrollController.position.pixels >
         _scrollController.position.maxScrollExtent - 200;
-    if (nearBottom && !_isLoadingMore && _visibleCount < _filteredEvents.length) {
+    if (nearBottom &&
+        !_isLoadingMore &&
+        _visibleCount < _filteredEvents.length) {
       setState(() {
         _isLoadingMore = true;
       });
       Future<void>.delayed(const Duration(milliseconds: 300), () {
         if (!mounted) return;
         setState(() {
-          _visibleCount = (_visibleCount + _pageSize).clamp(0, _filteredEvents.length);
+          _visibleCount = (_visibleCount + _pageSize).clamp(
+            0,
+            _filteredEvents.length,
+          );
           _isLoadingMore = false;
         });
       });
@@ -246,7 +251,9 @@ class _HomePageState extends State<HomePage> {
       ).showSnackBar(const SnackBar(content: Text('Данные обновлены')));
     } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось обновить данные. Попробуйте еще раз.')),
+        const SnackBar(
+          content: Text('Не удалось обновить данные. Попробуйте еще раз.'),
+        ),
       );
     }
   }
@@ -263,7 +270,11 @@ class _HomePageState extends State<HomePage> {
     final now = DateTime.now();
     final upcoming =
         _events
-            .where((event) => event.date.isAfter(now) && event.date.difference(now).inHours <= 24)
+            .where(
+              (event) =>
+                  event.date.isAfter(now) &&
+                  event.date.difference(now).inHours <= 24,
+            )
             .map(
               (event) =>
                   'Скоро событие: ${event.title} (${DateFormat('d MMM, HH:mm', 'ru').format(event.date)})',
@@ -307,15 +318,22 @@ class _HomePageState extends State<HomePage> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось сохранить мероприятие. Повторите еще раз.')),
+        const SnackBar(
+          content: Text('Не удалось сохранить мероприятие. Повторите еще раз.'),
+        ),
       );
     }
   }
 
-  List<Event> get _myEvents => _events.where((event) => event.ownerId == _currentUserId).toList();
+  List<Event> get _myEvents =>
+      _events.where((event) => event.ownerId == _currentUserId).toList();
 
   List<Event> get _activityEvents =>
-      _events.where((event) => event.isLiked || event.isGoing || event.isBookmarked).toList();
+      _events
+          .where(
+            (event) => event.isLiked || event.isGoing || event.isBookmarked,
+          )
+          .toList();
 
   void _openEventDetails(Event event) {
     Navigator.of(context).push(
@@ -336,7 +354,9 @@ class _HomePageState extends State<HomePage> {
         builder:
             (_) => CommentsPage(
               eventTitle: event.title,
-              initialComments: List<String>.from(_eventComments[event.id] ?? []),
+              initialComments: List<String>.from(
+                _eventComments[event.id] ?? [],
+              ),
               onChanged: (updatedComments) {
                 setState(() {
                   _eventComments[event.id] = updatedComments;
@@ -368,9 +388,7 @@ class _HomePageState extends State<HomePage> {
     try {
       final result = await Navigator.of(context).push<UserProfile>(
         MaterialPageRoute(
-          builder: (_) => ProfilePage(
-            initialProfile: _profile,
-          ),
+          builder: (_) => ProfilePage(initialProfile: _profile),
         ),
       );
       if (result == null) return;
@@ -382,7 +400,9 @@ class _HomePageState extends State<HomePage> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось открыть профиль. Попробуйте еще раз.')),
+        const SnackBar(
+          content: Text('Не удалось открыть профиль. Попробуйте еще раз.'),
+        ),
       );
     }
   }
@@ -396,7 +416,10 @@ class _HomePageState extends State<HomePage> {
               appBar: AppBar(title: const Text('Редактирование мероприятия')),
               body: Padding(
                 padding: const EdgeInsets.all(16),
-                child: AddEventForm(ownerId: _currentUserId, initialEvent: event),
+                child: AddEventForm(
+                  ownerId: _currentUserId,
+                  initialEvent: event,
+                ),
               ),
             ),
       ),
@@ -453,7 +476,9 @@ class _HomePageState extends State<HomePage> {
                       ? const Center(child: Text('Уведомлений пока нет'))
                       : ListView.builder(
                         itemCount: _notifications.length,
-                        itemBuilder: (_, index) => ListTile(title: Text(_notifications[index])),
+                        itemBuilder:
+                            (_, index) =>
+                                ListTile(title: Text(_notifications[index])),
                       ),
             ),
       ),
@@ -547,7 +572,10 @@ class _HomePageState extends State<HomePage> {
           onToggleUsed: _toggleTicketUsed,
         );
       case 4:
-        return MyActivityPage(events: _activityEvents, onOpenEvent: _openEventDetails);
+        return MyActivityPage(
+          events: _activityEvents,
+          onOpenEvent: _openEventDetails,
+        );
       default:
         return _buildFeedList();
     }
@@ -588,7 +616,10 @@ class _HomePageState extends State<HomePage> {
                   prefixIcon: const Icon(Icons.search),
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 0,
+                    horizontal: 16,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide.none,
@@ -617,7 +648,10 @@ class _HomePageState extends State<HomePage> {
                       DropdownMenuItem(value: 'Все', child: Text('Все')),
                       DropdownMenuItem(value: 'Музыка', child: Text('Музыка')),
                       DropdownMenuItem(value: 'Бизнес', child: Text('Бизнес')),
-                      DropdownMenuItem(value: 'Образование', child: Text('Образование')),
+                      DropdownMenuItem(
+                        value: 'Образование',
+                        child: Text('Образование'),
+                      ),
                       DropdownMenuItem(value: 'Спорт', child: Text('Спорт')),
                     ],
                     onChanged: (value) {
@@ -630,15 +664,20 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ],
-          Expanded(
-            child: _buildTabContent(),
-          ),
+          Expanded(child: _buildTabContent()),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: (_selectedTabIndex == 0 && _profile.role == 'organizer') ? _showAddEventPage : null,
+        onPressed:
+            (_selectedTabIndex == 0 && _profile.role == 'organizer')
+                ? _showAddEventPage
+                : null,
         icon: const Icon(Icons.add),
-        label: Text(_profile.role == 'organizer' ? 'Добавить мероприятие' : 'Только для организатора'),
+        label: Text(
+          _profile.role == 'organizer'
+              ? 'Добавить мероприятие'
+              : 'Только для организатора',
+        ),
         backgroundColor: Colors.purpleAccent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
@@ -658,11 +697,26 @@ class _HomePageState extends State<HomePage> {
           });
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Лента'),
-          BottomNavigationBarItem(icon: Icon(Icons.event_note_outlined), label: 'Мои'),
-          BottomNavigationBarItem(icon: Icon(Icons.bookmark_outline), label: 'Избранное'),
-          BottomNavigationBarItem(icon: Icon(Icons.confirmation_num_outlined), label: 'Билеты'),
-          BottomNavigationBarItem(icon: Icon(Icons.local_activity_outlined), label: 'Активность'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            label: 'Лента',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.event_note_outlined),
+            label: 'Мои',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bookmark_outline),
+            label: 'Избранное',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.confirmation_num_outlined),
+            label: 'Билеты',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.local_activity_outlined),
+            label: 'Активность',
+          ),
         ],
       ),
     );
