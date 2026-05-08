@@ -1,40 +1,40 @@
 name: Flutter Android CI
 
-   on:
-     push:
-       branches: [ main, develop ]
-     pull_request:
-       branches: [ main, develop ]
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
 
-   jobs:
-     build:
-       runs-on: ubuntu-latest
-       steps:
-         - uses: actions/checkout@v4
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-         - uses: subosito/flutter-action@v2
-           with:
-             channel: stable
-             cache: true
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
 
-         - run: flutter pub get
-         - run: dart analyze
-         - run: dart format --set-exit-if-changed .
-         - run: flutter test
+      - run: flutter pub get
+      - run: dart analyze
+      - run: dart format --set-exit-if-changed .
+      - run: flutter test
 
-         - name: Build APK & App Bundle
-           run: |
-             flutter build apk --release
-             flutter build appbundle --release
+      - name: Build APK & App Bundle
+        run: |
+          flutter build apk --release
+          flutter build appbundle --release
 
-         - name: Upload APK
-           uses: actions/upload-artifact@v4
-           with:
-             name: android-apk
-             path: build/app/outputs/flutter-apk/*.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: build/app/outputs/flutter-apk/*.apk
 
-         - name: Upload App Bundle
-           uses: actions/upload-artifact@v4
-           with:
-             name: android-appbundle
-             path: build/app/outputs/bundle/release/*.aab
+      - name: Upload App Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-appbundle
+          path: build/app/outputs/bundle/release/*.aab
