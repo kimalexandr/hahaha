@@ -7,6 +7,7 @@ import 'package:eventa/src/features/home/presentation/pages/home_page.dart';
 import 'package:eventa/src/features/profile/presentation/pages/edit_profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
 
 class App extends StatelessWidget {
@@ -22,6 +23,12 @@ class App extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('ru'), Locale('en')],
         home: const AuthGate(),
       ),
     );

@@ -4,7 +4,7 @@ import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dar
 import 'package:injectable/injectable.dart';
 import 'package:rxdart/rxdart.dart';
 
-@LazySingleton(as: AuthRepository, env: [Environment.dev])
+@LazySingleton(as: AuthRepository, env: ['mock'])
 class MockAuthRepository implements AuthRepository {
   final _authStateController = BehaviorSubject<bool>.seeded(false);
   bool _profileCreated = false;

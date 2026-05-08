@@ -1,12 +1,27 @@
 import 'package:eventa/src/app/app.dart';
 import 'package:eventa/src/core/di/injection.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:injectable/injectable.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // TODO: Add Firebase initialization here after configuring it via FlutterFire CLI
-  await configureDependencies(environment: Environment.dev);
+  await Hive.initFlutter();
+  if (!kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS)) {
+    await Firebase.initializeApp();
+  }
+  await configureDependencies(
+    environment:
+        (!kIsWeb &&
+                (defaultTargetPlatform == TargetPlatform.android ||
+                    defaultTargetPlatform == TargetPlatform.iOS))
+            ? Environment.dev
+            : 'mock',
+  );
   runApp(const App());
 }
 

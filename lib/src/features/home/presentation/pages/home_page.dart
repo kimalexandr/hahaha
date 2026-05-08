@@ -1,35 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
-class Event {
-  final String title;
-  final DateTime date;
-  final String place;
-  final String description;
-  final List<String> photos;
-  int likes;
-  int going;
-  int comments;
-  bool isLiked;
-  bool isGoing;
-  bool isBookmarked;
-  bool hasTicket;
-
-  Event({
-    required this.title,
-    required this.date,
-    required this.place,
-    required this.description,
-    required this.photos,
-    this.likes = 0,
-    this.going = 0,
-    this.comments = 0,
-    this.isLiked = false,
-    this.isGoing = false,
-    this.isBookmarked = false,
-    this.hasTicket = false,
-  });
-}
+import 'package:eventa/src/features/home/domain/entities/event.dart';
+import 'package:eventa/src/features/home/data/local/home_local_storage.dart';
+import 'package:eventa/src/features/home/data/remote/home_remote_storage.dart';
+import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
+import 'package:eventa/src/features/home/presentation/pages/home_components.dart';
+import 'package:flutter/foundation.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -39,10 +15,27 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  static const String _currentUserId = 'user-1';
+  static const int _pageSize = 10;
+  final HomeLocalStorage _localStorage = HomeLocalStorage();
+  final bool _useFirebaseBackend =
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+  HomeRemoteStorage? _remoteStorage;
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _cityFilterController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   final List<Event> _events = [
     Event(
+      id: 'event-1',
+      createdAt: DateTime.now(),
+      ownerId: 'system',
+      organizerName: 'Eventa Team',
       title: 'Open Air Party',
+      city: 'Almaty',
+      category: 'Музыка',
+      price: 2500,
       date: DateTime.now().add(const Duration(days: 2)),
       place: 'Central Park',
       description:
@@ -58,7 +51,14 @@ class _HomePageState extends State<HomePage> {
       hasTicket: true,
     ),
     Event(
+      id: 'event-2',
+      createdAt: DateTime.now(),
+      ownerId: 'system',
+      organizerName: 'Tech Community',
       title: 'Startup Meetup',
+      city: 'Astana',
+      category: 'Бизнес',
+      price: 0,
       date: DateTime.now().add(const Duration(days: 5)),
       place: 'Tech Hub',
       description: 'Networking and talks for aspiring entrepreneurs.',
@@ -73,51 +73,483 @@ class _HomePageState extends State<HomePage> {
     ),
   ];
   List<Event> _filteredEvents = [];
+  final Map<String, List<String>> _eventComments = {
+    'event-1': ['Классный лайн-ап!', 'Кто еще идет?'],
+    'event-2': ['Будет запись выступлений?'],
+  };
+  UserProfile _profile = UserProfile(
+    id: 'profile-1',
+    createdAt: DateTime.now(),
+    ownerId: _currentUserId,
+    name: 'Пользователь',
+    bio: 'Расскажите о себе',
+    role: 'user',
+  );
+  String _selectedCategory = 'Все';
+  bool _freeOnly = false;
+  DateTime? _selectedFilterDate;
+  int _selectedTabIndex = 0;
+  int _visibleCount = _pageSize;
+  bool _isLoadingMore = false;
+  List<String> _notifications = [];
 
   @override
   void initState() {
     super.initState();
-    _filteredEvents = _events;
+    if (_useFirebaseBackend) {
+      _remoteStorage = HomeRemoteStorage();
+    }
+    _loadState();
     _searchController.addListener(_onSearch);
+    _scrollController.addListener(_onListScroll);
   }
 
   void _onSearch() {
+    _applyFilters();
+  }
+
+  Future<void> _loadState() async {
+    List<Event> savedEvents = [];
+    UserProfile? savedProfile;
+    Map<String, List<String>> savedComments = {};
+    final savedNotifications = await _localStorage.readNotifications();
+
+    try {
+      if (_remoteStorage == null) {
+        throw Exception('Remote storage disabled on this platform');
+      }
+      savedEvents = await _remoteStorage!.readEvents();
+      savedProfile = await _remoteStorage!.readProfile(_currentUserId);
+      savedComments = await _remoteStorage!.readCommentsMap();
+    } catch (_) {
+      // Fall back to local cache when network/Firestore is unavailable.
+      savedEvents = await _localStorage.readEvents();
+      savedProfile = await _localStorage.readProfile();
+      savedComments = await _localStorage.readComments();
+    }
+    if (!mounted) return;
+
+    setState(() {
+      if (savedEvents.isNotEmpty) {
+        _events
+          ..clear()
+          ..addAll(savedEvents);
+      }
+      if (savedProfile != null) {
+        _profile = savedProfile;
+      }
+      if (savedComments.isNotEmpty) {
+        _eventComments
+          ..clear()
+          ..addAll(savedComments);
+      }
+      if (savedNotifications.isNotEmpty) {
+        _notifications = savedNotifications;
+      }
+    });
+
+    _applyFilters();
+    _syncNotifications();
+    await _persistState();
+  }
+
+  Future<void> _persistState() async {
+    await _localStorage.saveEvents(_events);
+    await _localStorage.saveProfile(_profile);
+    await _localStorage.saveComments(_eventComments);
+    await _localStorage.saveNotifications(_notifications);
+
+    try {
+      if (_remoteStorage == null) return;
+      for (final event in _events) {
+        await _remoteStorage!.upsertEvent(event);
+      }
+      await _remoteStorage!.saveProfile(_profile);
+      await _remoteStorage!.saveCommentsMap(_eventComments);
+    } catch (_) {
+      // Keep app usable offline; local data is already saved.
+    }
+  }
+
+  void _onListScroll() {
+    if (_selectedTabIndex != 0) return;
+    if (!_scrollController.hasClients) return;
+    final nearBottom =
+        _scrollController.position.pixels >
+        _scrollController.position.maxScrollExtent - 200;
+    if (nearBottom && !_isLoadingMore && _visibleCount < _filteredEvents.length) {
+      setState(() {
+        _isLoadingMore = true;
+      });
+      Future<void>.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
+        setState(() {
+          _visibleCount = (_visibleCount + _pageSize).clamp(0, _filteredEvents.length);
+          _isLoadingMore = false;
+        });
+      });
+    }
+  }
+
+  void _applyFilters() {
     final query = _searchController.text.toLowerCase();
+    final city = _cityFilterController.text.trim().toLowerCase();
     setState(() {
       _filteredEvents =
           _events
               .where(
                 (event) =>
-                    event.title.toLowerCase().contains(query) ||
-                    event.place.toLowerCase().contains(query) ||
-                    event.description.toLowerCase().contains(query),
+                    (event.title.toLowerCase().contains(query) ||
+                        event.place.toLowerCase().contains(query) ||
+                        event.description.toLowerCase().contains(query)) &&
+                    (city.isEmpty || event.city.toLowerCase().contains(city)) &&
+                    (_selectedCategory == 'Все' ||
+                        event.category == _selectedCategory) &&
+                    (!_freeOnly || event.price == 0) &&
+                    (_selectedFilterDate == null ||
+                        (event.date.year == _selectedFilterDate!.year &&
+                            event.date.month == _selectedFilterDate!.month &&
+                            event.date.day == _selectedFilterDate!.day)),
               )
               .toList();
+      _visibleCount = _pageSize.clamp(0, _filteredEvents.length);
     });
   }
 
+  List<Event> _eventsForCurrentTab() {
+    switch (_selectedTabIndex) {
+      case 1:
+        return _myEvents;
+      case 2:
+        return _events.where((event) => event.isBookmarked).toList();
+      case 3:
+        return _events.where((event) => event.hasTicket).toList();
+      default:
+        return _filteredEvents.take(_visibleCount).toList();
+    }
+  }
+
+  void _reloadEvents() {
+    try {
+      setState(() {
+        _searchController.clear();
+        _cityFilterController.clear();
+        _selectedCategory = 'Все';
+        _freeOnly = false;
+        _selectedFilterDate = null;
+      });
+      _applyFilters();
+      _syncNotifications();
+      _persistState();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Данные обновлены')));
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось обновить данные. Попробуйте еще раз.')),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _cityFilterController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _syncNotifications() {
+    final now = DateTime.now();
+    final upcoming =
+        _events
+            .where((event) => event.date.isAfter(now) && event.date.difference(now).inHours <= 24)
+            .map(
+              (event) =>
+                  'Скоро событие: ${event.title} (${DateFormat('d MMM, HH:mm', 'ru').format(event.date)})',
+            )
+            .toList();
+    _notifications = [
+      ...upcoming,
+      if (_profile.role == 'organizer') 'Режим организатора активен',
+    ];
+  }
+
   void _showAddEventPage() async {
-    final event = await Navigator.push<Event>(
+    try {
+      final event = await Navigator.push<Event>(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => Scaffold(
+                appBar: AppBar(
+                  title: const Text('Новое мероприятие'),
+                  centerTitle: true,
+                ),
+                body: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: AddEventForm(ownerId: _currentUserId),
+                ),
+              ),
+        ),
+      );
+      if (event != null) {
+        setState(() {
+          event.isCreatedByMe = true;
+          _events.insert(0, event);
+          _eventComments.putIfAbsent(event.id, () => []);
+          _notifications.insert(0, 'Создано мероприятие: ${event.title}');
+        });
+        _applyFilters();
+        _syncNotifications();
+        _persistState();
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось сохранить мероприятие. Повторите еще раз.')),
+      );
+    }
+  }
+
+  List<Event> get _myEvents => _events.where((event) => event.ownerId == _currentUserId).toList();
+
+  List<Event> get _activityEvents =>
+      _events.where((event) => event.isLiked || event.isGoing || event.isBookmarked).toList();
+
+  void _openEventDetails(Event event) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (_) => EventDetailsPage(
+              event: event,
+              onOpenComments: () => _openCommentsPage(event),
+              onOpenOrganizer: () => _openOrganizerProfile(event),
+            ),
+      ),
+    );
+  }
+
+  void _openCommentsPage(Event event) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (_) => CommentsPage(
+              eventTitle: event.title,
+              initialComments: List<String>.from(_eventComments[event.id] ?? []),
+              onChanged: (updatedComments) {
+                setState(() {
+                  _eventComments[event.id] = updatedComments;
+                  event.comments = updatedComments.length;
+                });
+                _persistState();
+              },
+            ),
+      ),
+    );
+  }
+
+  void _openOrganizerProfile(Event event) {
+    final organizerEvents =
+        _events.where((item) => item.ownerId == event.ownerId).toList();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (_) => OrganizerProfilePage(
+              organizerName: event.organizerName,
+              events: organizerEvents,
+              onOpenEvent: _openEventDetails,
+            ),
+      ),
+    );
+  }
+
+  Future<void> _openProfilePage() async {
+    try {
+      final result = await Navigator.of(context).push<UserProfile>(
+        MaterialPageRoute(
+          builder: (_) => ProfilePage(
+            initialProfile: _profile,
+          ),
+        ),
+      );
+      if (result == null) return;
+      setState(() {
+        _profile = result;
+      });
+      _syncNotifications();
+      _persistState();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось открыть профиль. Попробуйте еще раз.')),
+      );
+    }
+  }
+
+  Future<void> _editEvent(Event event) async {
+    final edited = await Navigator.push<Event>(
       context,
       MaterialPageRoute(
         builder:
-            (context) => Scaffold(
-              appBar: AppBar(
-                title: const Text('Новое мероприятие'),
-                centerTitle: true,
-              ),
+            (_) => Scaffold(
+              appBar: AppBar(title: const Text('Редактирование мероприятия')),
               body: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: _AddEventForm(),
+                padding: const EdgeInsets.all(16),
+                child: AddEventForm(ownerId: _currentUserId, initialEvent: event),
               ),
             ),
       ),
     );
-    if (event != null) {
-      setState(() {
-        _events.insert(0, event);
-        _filteredEvents = _events;
-      });
+    if (edited == null) return;
+    final index = _events.indexWhere((item) => item.id == event.id);
+    if (index == -1) return;
+    setState(() {
+      _events[index] = edited.copyWith(isCreatedByMe: true);
+      _notifications.insert(0, 'Мероприятие обновлено: ${edited.title}');
+    });
+    _applyFilters();
+    _persistState();
+  }
+
+  void _deleteEvent(Event event) {
+    setState(() {
+      _events.removeWhere((item) => item.id == event.id);
+      _eventComments.remove(event.id);
+      _notifications.insert(0, 'Удалено мероприятие: ${event.title}');
+    });
+    _applyFilters();
+    _persistState();
+    Future<void>(() async {
+      try {
+        await _remoteStorage?.deleteEvent(event.id);
+      } catch (_) {
+        // Local state already updated and persisted.
+      }
+    });
+  }
+
+  void _toggleTicketUsed(Event event) {
+    setState(() {
+      event.isTicketUsed = !event.isTicketUsed;
+      _notifications.insert(
+        0,
+        event.isTicketUsed
+            ? 'Билет отмечен как использованный: ${event.title}'
+            : 'Билет снова активен: ${event.title}',
+      );
+    });
+    _persistState();
+  }
+
+  void _openNotifications() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (_) => Scaffold(
+              appBar: AppBar(title: const Text('Уведомления')),
+              body:
+                  _notifications.isEmpty
+                      ? const Center(child: Text('Уведомлений пока нет'))
+                      : ListView.builder(
+                        itemCount: _notifications.length,
+                        itemBuilder: (_, index) => ListTile(title: Text(_notifications[index])),
+                      ),
+            ),
+      ),
+    );
+  }
+
+  Widget _buildFeedList() {
+    final items = _eventsForCurrentTab();
+    if (items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Нет мероприятий'),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _reloadEvents,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Повторить'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.only(bottom: 80),
+      itemCount: items.length + (_isLoadingMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index >= items.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final event = items[index];
+        return EventCard(
+          event: event,
+          onOpen: () => _openEventDetails(event),
+          onLike: () {
+            setState(() {
+              event.isLiked = !event.isLiked;
+              event.likes += event.isLiked ? 1 : -1;
+            });
+            _persistState();
+          },
+          onGoing: () {
+            setState(() {
+              event.isGoing = !event.isGoing;
+              event.going += event.isGoing ? 1 : -1;
+            });
+            _persistState();
+          },
+          onBookmark: () {
+            setState(() {
+              event.isBookmarked = !event.isBookmarked;
+            });
+            _persistState();
+          },
+          onBuyTicket: () {
+            setState(() {
+              event.hasTicket = true;
+            });
+            _persistState();
+          },
+          onComment: () => _openCommentsPage(event),
+        );
+      },
+    );
+  }
+
+  Widget _buildTabContent() {
+    switch (_selectedTabIndex) {
+      case 1:
+        return MyEventsPage(
+          events: _myEvents,
+          onOpenEvent: _openEventDetails,
+          onEditEvent: _editEvent,
+          onDeleteEvent: _deleteEvent,
+        );
+      case 2:
+        return FavoritesPage(
+          events: _events.where((event) => event.isBookmarked).toList(),
+          onOpenEvent: _openEventDetails,
+        );
+      case 3:
+        return MyTicketsPage(
+          events: _events.where((event) => event.hasTicket).toList(),
+          onOpenEvent: _openEventDetails,
+          onToggleUsed: _toggleTicketUsed,
+        );
+      case 4:
+        return MyActivityPage(events: _activityEvents, onOpenEvent: _openEventDetails);
+      default:
+        return _buildFeedList();
     }
   }
 
@@ -133,429 +565,105 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.white,
         elevation: 0.5,
         centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: _openNotifications,
+            icon: const Icon(Icons.notifications_outlined),
+          ),
+          IconButton(
+            onPressed: _openProfilePage,
+            icon: const Icon(Icons.person_outline),
+          ),
+        ],
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Поиск мероприятий',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 0,
-                  horizontal: 16,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
+          if (_selectedTabIndex == 0) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Поиск мероприятий',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
             ),
-          ),
-          Expanded(
-            child:
-                _filteredEvents.isEmpty
-                    ? const Center(child: Text('Нет мероприятий'))
-                    : ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 80),
-                      itemCount: _filteredEvents.length,
-                      itemBuilder: (context, index) {
-                        final event = _filteredEvents[index];
-                        return _EventCard(
-                          event: event,
-                          onLike: () {
-                            setState(() {
-                              event.isLiked = !event.isLiked;
-                              event.likes += event.isLiked ? 1 : -1;
-                            });
-                          },
-                          onGoing: () {
-                            setState(() {
-                              event.isGoing = !event.isGoing;
-                              event.going += event.isGoing ? 1 : -1;
-                            });
-                          },
-                          onBookmark: () {
-                            setState(() {
-                              event.isBookmarked = !event.isBookmarked;
-                            });
-                          },
-                          onBuyTicket: () {
-                            setState(() {
-                              event.hasTicket = true;
-                            });
-                          },
-                          onComment: () {
-                            // Здесь можно реализовать переход к комментариям
-                          },
-                        );
-                      },
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _cityFilterController,
+                      onChanged: (_) => _applyFilters(),
+                      decoration: const InputDecoration(
+                        hintText: 'Город',
+                        prefixIcon: Icon(Icons.location_city_outlined),
+                      ),
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  DropdownButton<String>(
+                    value: _selectedCategory,
+                    items: const [
+                      DropdownMenuItem(value: 'Все', child: Text('Все')),
+                      DropdownMenuItem(value: 'Музыка', child: Text('Музыка')),
+                      DropdownMenuItem(value: 'Бизнес', child: Text('Бизнес')),
+                      DropdownMenuItem(value: 'Образование', child: Text('Образование')),
+                      DropdownMenuItem(value: 'Спорт', child: Text('Спорт')),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      _selectedCategory = value;
+                      _applyFilters();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+          Expanded(
+            child: _buildTabContent(),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddEventPage,
+        onPressed: (_selectedTabIndex == 0 && _profile.role == 'organizer') ? _showAddEventPage : null,
         icon: const Icon(Icons.add),
-        label: const Text('Добавить мероприятие'),
+        label: Text(_profile.role == 'organizer' ? 'Добавить мероприятие' : 'Только для организатора'),
         backgroundColor: Colors.purpleAccent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-    );
-  }
-}
-
-class _EventCard extends StatelessWidget {
-  final Event event;
-  final VoidCallback onLike;
-  final VoidCallback onGoing;
-  final VoidCallback onBookmark;
-  final VoidCallback onBuyTicket;
-  final VoidCallback onComment;
-  const _EventCard({
-    required this.event,
-    required this.onLike,
-    required this.onGoing,
-    required this.onBookmark,
-    required this.onBuyTicket,
-    required this.onComment,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 4,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            height: 220,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
-              child: PageView.builder(
-                itemCount: event.photos.length,
-                itemBuilder: (context, index) {
-                  return Image.network(
-                    event.photos[index],
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                  );
-                },
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  event.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today,
-                      size: 16,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      DateFormat('d MMM, HH:mm', 'ru').format(event.date),
-                      style: TextStyle(color: Colors.grey[700]),
-                    ),
-                    const SizedBox(width: 12),
-                    Icon(Icons.place, size: 16, color: Colors.grey[600]),
-                    const SizedBox(width: 4),
-                    Text(
-                      event.place,
-                      style: TextStyle(color: Colors.grey[700]),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(event.description, style: const TextStyle(fontSize: 16)),
-                const SizedBox(height: 14),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            event.isLiked
-                                ? Icons.favorite
-                                : Icons.favorite_border,
-                            color:
-                                event.isLiked ? Colors.red : Colors.grey[600],
-                          ),
-                          onPressed: onLike,
-                        ),
-                        Text('${event.likes}'),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: Icon(
-                            event.isGoing ? Icons.person : Icons.person_outline,
-                            color:
-                                event.isGoing ? Colors.blue : Colors.grey[600],
-                          ),
-                          onPressed: onGoing,
-                        ),
-                        Text('${event.going}'),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: Icon(
-                            event.hasTicket
-                                ? Icons.confirmation_num
-                                : Icons.confirmation_num_outlined,
-                            color:
-                                event.hasTicket
-                                    ? Colors.orange
-                                    : Colors.grey[600],
-                          ),
-                          onPressed: event.hasTicket ? null : onBuyTicket,
-                          tooltip:
-                              event.hasTicket ? 'Билет куплен' : 'Купить билет',
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: Icon(
-                            event.isBookmarked
-                                ? Icons.bookmark
-                                : Icons.bookmark_border,
-                            color:
-                                event.isBookmarked
-                                    ? Colors.purple
-                                    : Colors.grey[600],
-                          ),
-                          onPressed: onBookmark,
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.comment_outlined,
-                            color: Colors.grey,
-                          ),
-                          onPressed: onComment,
-                        ),
-                        Text('${event.comments}'),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedTabIndex,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: const Color(0xFF6A1B9A),
+        selectedItemColor: Colors.amberAccent,
+        unselectedItemColor: Colors.white70,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+        showUnselectedLabels: true,
+        onTap: (index) {
+          setState(() {
+            _selectedTabIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Лента'),
+          BottomNavigationBarItem(icon: Icon(Icons.event_note_outlined), label: 'Мои'),
+          BottomNavigationBarItem(icon: Icon(Icons.bookmark_outline), label: 'Избранное'),
+          BottomNavigationBarItem(icon: Icon(Icons.confirmation_num_outlined), label: 'Билеты'),
+          BottomNavigationBarItem(icon: Icon(Icons.local_activity_outlined), label: 'Активность'),
         ],
-      ),
-    );
-  }
-}
-
-class _AddEventForm extends StatefulWidget {
-  const _AddEventForm();
-
-  @override
-  State<_AddEventForm> createState() => _AddEventFormState();
-}
-
-class _AddEventFormState extends State<_AddEventForm> {
-  final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _placeController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  DateTime? _selectedDate;
-  final List<String> _photoUrls = [];
-  final _photoController = TextEditingController();
-
-  void _pickDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: now,
-      lastDate: DateTime(now.year + 2),
-      locale: const Locale('ru'),
-    );
-    if (picked != null) {
-      final time = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
-      );
-      if (time != null) {
-        setState(() {
-          _selectedDate = DateTime(
-            picked.year,
-            picked.month,
-            picked.day,
-            time.hour,
-            time.minute,
-          );
-        });
-      }
-    }
-  }
-
-  void _addPhoto() {
-    final url = _photoController.text.trim();
-    if (url.isNotEmpty) {
-      setState(() {
-        _photoUrls.add(url);
-        _photoController.clear();
-      });
-    }
-  }
-
-  void _submit() {
-    if (_formKey.currentState!.validate() &&
-        _selectedDate != null &&
-        _photoUrls.isNotEmpty) {
-      Navigator.pop(
-        context,
-        Event(
-          title: _titleController.text.trim(),
-          date: _selectedDate!,
-          place: _placeController.text.trim(),
-          description: _descriptionController.text.trim(),
-          photos: List.from(_photoUrls),
-          likes: 0,
-          going: 0,
-          comments: 0,
-          isLiked: false,
-          isGoing: false,
-          isBookmarked: false,
-          hasTicket: false,
-        ),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Новое мероприятие',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _titleController,
-              decoration: const InputDecoration(labelText: 'Название'),
-              validator:
-                  (v) => v == null || v.isEmpty ? 'Введите название' : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _placeController,
-              decoration: const InputDecoration(labelText: 'Место'),
-              validator: (v) => v == null || v.isEmpty ? 'Введите место' : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(labelText: 'Описание'),
-              maxLines: 3,
-              validator:
-                  (v) => v == null || v.isEmpty ? 'Введите описание' : null,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _selectedDate == null
-                        ? 'Дата и время не выбраны'
-                        : DateFormat(
-                          'd MMM, HH:mm',
-                          'ru',
-                        ).format(_selectedDate!),
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: _pickDate,
-                  icon: const Icon(Icons.calendar_today),
-                  label: const Text('Выбрать'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Text('Фото (URL):'),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _photoController,
-                    decoration: const InputDecoration(
-                      hintText: 'Вставьте ссылку на фото',
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add_a_photo),
-                  onPressed: _addPhoto,
-                ),
-              ],
-            ),
-            SizedBox(
-              height: 80,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children:
-                    _photoUrls
-                        .map(
-                          (url) => Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                url,
-                                width: 70,
-                                height: 70,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purpleAccent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text('Добавить', style: TextStyle(fontSize: 18)),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-        ),
       ),
     );
   }
