@@ -62,11 +62,11 @@ jobs:
           name: android-appbundle
           path: build/app/outputs/bundle/release/*.aab
 
-      # Нужны секреты репозитория (Settings → Secrets):
-      #   GOOGLE_DRIVE_SERVICE_ACCOUNT — JSON ключ сервисного аккаунта (весь файл).
+      # Нужны ОБА секрета (Settings → Secrets → Actions):
+      #   GOOGLE_DRIVE_SERVICE_ACCOUNT — JSON ключа целиком ИЛИ GOOGLE_DRIVE_SERVICE_ACCOUNT_B64 (base64 от JSON).
       #   GOOGLE_DRIVE_FOLDER_ID — ID папки из URL Drive (.../folders/ID).
-      # Папку расшарьте на e-mail вида xxx@xxx.iam.gserviceaccount.com с правом «Редактор».
-      # В GCP включите API «Google Drive API» для того же проекта, что и ключ.
+      # Папку расшарьте на client_email из JSON (поле client_email) с правом «Редактор».
+      # В GCP включите API «Google Drive API» для проекта ключа.
       - name: Upload release builds to Google Drive
         if: github.event_name == 'push'
         env:
