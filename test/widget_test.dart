@@ -1,30 +1,35 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Basic widget smoke test: реальное приложение с mock-окружением DI.
 
-import 'package:flutter/material.dart';
+import 'dart:io';
+
+import 'package:eventa/src/app/app.dart';
+import 'package:eventa/src/core/di/injection.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:eventa/main.dart';
+import 'package:hive/hive.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  late Directory hiveDir;
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    hiveDir = Directory.systemTemp.createTempSync('eventa_widget_test');
+    Hive.init(hiveDir.path);
+    await configureDependencies(environment: 'mock');
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+  tearDownAll(() async {
+    if (hiveDir.existsSync()) {
+      hiveDir.deleteSync(recursive: true);
+    }
+  });
+
+  testWidgets('приложение строится и показывает экран входа', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const App());
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Eventa'), findsOneWidget);
   });
 }

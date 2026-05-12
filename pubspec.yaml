@@ -46,6 +46,8 @@ dependencies:
   injectable: ^2.5.0
   bloc: ^9.0.0
   rxdart: ^0.28.0
+  # Явная зависимость для depend_on_referenced_packages; версию подбирает pub под SDK.
+  intl: any
   hive_flutter: ^1.1.0
   cached_network_image: ^3.4.1
   qr_flutter: ^4.1.0
@@ -53,6 +55,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  hive: ^2.2.3
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

@@ -230,6 +230,7 @@ class _ProfilePageState extends State<ProfilePage> {
               maxLines: 3,
             ),
             const SizedBox(height: 12),
+            // ignore: deprecated_member_use — value устарел в новых SDK; initialValue недоступен на старых Flutter.
             DropdownButtonFormField<String>(
               value: _role,
               decoration: const InputDecoration(labelText: 'Роль'),
@@ -758,23 +759,25 @@ class _AddEventFormState extends State<AddEventForm> {
       lastDate: DateTime(now.year + 2),
       locale: const Locale('ru'),
     );
-    if (picked != null) {
-      final time = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
+    if (!mounted) return;
+    if (picked == null) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (!mounted) return;
+    if (time == null) return;
+
+    setState(() {
+      _selectedDate = DateTime(
+        picked.year,
+        picked.month,
+        picked.day,
+        time.hour,
+        time.minute,
       );
-      if (time != null) {
-        setState(() {
-          _selectedDate = DateTime(
-            picked.year,
-            picked.month,
-            picked.day,
-            time.hour,
-            time.minute,
-          );
-        });
-      }
-    }
+    });
   }
 
   void _addPhoto() {
@@ -874,6 +877,7 @@ class _AddEventFormState extends State<AddEventForm> {
               validator: (v) => v == null || v.isEmpty ? 'Введите место' : null,
             ),
             const SizedBox(height: 12),
+            // ignore: deprecated_member_use — см. комментарий у DropdownButtonFormField «Роль».
             DropdownButtonFormField<String>(
               value: _category,
               decoration: const InputDecoration(labelText: 'Категория'),
@@ -898,8 +902,9 @@ class _AddEventFormState extends State<AddEventForm> {
               ),
               validator: (v) {
                 final parsed = double.tryParse((v ?? '').trim());
-                if (parsed == null || parsed < 0)
+                if (parsed == null || parsed < 0) {
                   return 'Введите корректную цену';
+                }
                 return null;
               },
             ),
