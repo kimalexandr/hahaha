@@ -62,18 +62,21 @@ jobs:
           name: android-appbundle
           path: build/app/outputs/bundle/release/*.aab
 
-      # Нужны ОБА секрета (Settings → Secrets → Actions):
-      #   GOOGLE_DRIVE_SERVICE_ACCOUNT — JSON ключа целиком ИЛИ GOOGLE_DRIVE_SERVICE_ACCOUNT_B64 (base64 от JSON).
-      #   GOOGLE_DRIVE_FOLDER_ID — ID папки из URL Drive (.../folders/ID).
-      # Папку расшарьте на client_email из JSON (поле client_email) с правом «Редактор».
-      # В GCP включите API «Google Drive API» для проекта ключа.
-      - name: Upload release builds to Google Drive
+      # Артефакты в облако (push): нужен JSON ключа SA — GOOGLE_DRIVE_SERVICE_ACCOUNT (или …_B64).
+      # Рекомендуется GCS (без лимита «личного» Drive у SA):
+      #   GCS_BUCKET_NAME — имя bucket (без gs://); в GCP включи Cloud Storage API, создай bucket,
+      #   выдай SA из JSON роль Storage Object Creator на bucket.
+      # Опционально Drive (часто 403 без Workspace Shared drive):
+      #   GOOGLE_DRIVE_FOLDER_ID — ID папки; для обычного «Мой диск» у SA квоты нет — см. лог скрипта.
+      - name: Upload release builds (GCS / Drive)
         if: github.event_name == 'push'
         env:
           GOOGLE_DRIVE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT }}
           GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+          GCS_BUCKET_NAME: ${{ secrets.GCS_BUCKET_NAME }}
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
           GITHUB_SHA: ${{ github.sha }}
         run: |
-          python3 -m pip install --quiet google-api-python-client google-auth-httplib2 google-auth
-          python3 .github/scripts/upload_to_google_drive.py
+          python3 -m pip install --quiet \
+            google-api-python-client google-auth-httplib2 google-auth google-cloud-storage
+          python3 .github/scripts/upload_release_artifacts.py
