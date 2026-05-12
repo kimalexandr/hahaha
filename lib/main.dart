@@ -39,20 +39,22 @@ Future<void> _reportStartupFailure(Object error, StackTrace stackTrace) async {
       reason: 'bootstrap',
       fatal: true,
     );
+    await FirebaseCrashlytics.instance.sendUnsentReports();
   } catch (_) {}
 }
 
 void _reportStartupFailureSync(Object error, StackTrace stackTrace) {
   if (!_crashlyticsAvailable) return;
   try {
-    unawaited(
-      FirebaseCrashlytics.instance.recordError(
+    unawaited(() async {
+      await FirebaseCrashlytics.instance.recordError(
         error,
         stackTrace,
         reason: 'zone',
         fatal: true,
-      ),
-    );
+      );
+      await FirebaseCrashlytics.instance.sendUnsentReports();
+    }());
   } catch (_) {}
 }
 
