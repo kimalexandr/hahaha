@@ -1,15 +1,7 @@
-# Codemagic: сборка iOS IPA (Flutter).
-# Документация: https://docs.codemagic.io/flutter-yaml/ios-signing/
-#
-# Перед первым запуском в Codemagic:
-# 1) Integrations → App Store Connect: создай API Key (Issuer ID, Key ID, .p8).
-# 2) В этом файле замени имя интеграции в блоке integrations (сейчас: app_store_connect_key).
-# 3) Teams → Code signing identities: загрузи Distribution certificate + provisioning profile
-#    для bundle id ниже ИЛИ используй fetch-signing-files (как в скриптах).
-# 4) Firebase iOS: в Codemagic создай переменную типа **File** (например `IOS_GOOGLE_SERVICES`)
-#    со значением файл GoogleService-Info.plist — скрипт ниже скопирует в ios/Runner/.
-# 5) Bundle ID в Apple Developer / Xcode должен совпадать с BUNDLE_ID (сейчас com.example.eventa).
-#    Для продакшена лучше привести к одному id с Android (например com.eventus.app) в Xcode и здесь.
+# iOS → TestFlight через Codemagic.
+# Перед сборкой: в developer.apple.com должен быть App ID com.eventus.app (или создастся через API с --create).
+# В App Store Connect должно быть приложение с этим Bundle ID. API Key — роль App Manager или Admin.
+# Firebase: добавь iOS-приложение с bundle com.eventus.app и положи GoogleService-Info.plist в переменную IOS_GOOGLE_SERVICES.
 
 workflows:
   ios-release:
@@ -22,9 +14,9 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.example.eventa
+        bundle_identifier: com.eventus.app
       vars:
-        BUNDLE_ID: "com.example.eventa"
+        BUNDLE_ID: "com.eventus.app"
       flutter: 3.41.9
       xcode: latest
       cocoapods: default
@@ -58,3 +50,10 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+
+    # Отправка в App Store Connect → TestFlight (нужны права у API Key: App Manager или Admin).
+    # https://docs.codemagic.io/flutter-publishing/publishing-to-app-store/
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
