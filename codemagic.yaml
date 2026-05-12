@@ -1,4 +1,6 @@
 # iOS → TestFlight через Codemagic.
+# Нужна платная подписка Apple Developer Program (~99 USD/год): без неё нет App Store Connect и TestFlight.
+# https://developer.apple.com/programs/
 # Перед сборкой: в developer.apple.com должен быть App ID com.eventus.app (или создастся через API с --create).
 # В App Store Connect должно быть приложение с этим Bundle ID. API Key — роль App Manager или Admin.
 # Firebase: добавь iOS-приложение с bundle com.eventus.app и положи GoogleService-Info.plist в переменную IOS_GOOGLE_SERVICES.
