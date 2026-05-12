@@ -1,0 +1,60 @@
+# Codemagic: сборка iOS IPA (Flutter).
+# Документация: https://docs.codemagic.io/flutter-yaml/ios-signing/
+#
+# Перед первым запуском в Codemagic:
+# 1) Integrations → App Store Connect: создай API Key (Issuer ID, Key ID, .p8).
+# 2) В этом файле замени имя интеграции в блоке integrations (сейчас: app_store_connect_key).
+# 3) Teams → Code signing identities: загрузи Distribution certificate + provisioning profile
+#    для bundle id ниже ИЛИ используй fetch-signing-files (как в скриптах).
+# 4) Firebase iOS: в Codemagic создай переменную типа **File** (например `IOS_GOOGLE_SERVICES`)
+#    со значением файл GoogleService-Info.plist — скрипт ниже скопирует в ios/Runner/.
+# 5) Bundle ID в Apple Developer / Xcode должен совпадать с BUNDLE_ID (сейчас com.example.eventa).
+#    Для продакшена лучше привести к одному id с Android (например com.eventus.app) в Xcode и здесь.
+
+workflows:
+  ios-release:
+    name: iOS IPA (release)
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    integrations:
+      # Имя должно совпадать с интеграцией в Codemagic (Integrations → Developer integrations).
+      app_store_connect: app_store_connect_key
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.example.eventa
+      vars:
+        BUNDLE_ID: "com.example.eventa"
+      flutter: 3.41.9
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: GoogleService-Info.plist (файловая переменная IOS_GOOGLE_SERVICES)
+        script: |
+          if [ -n "${IOS_GOOGLE_SERVICES:-}" ] && [ -f "$IOS_GOOGLE_SERVICES" ]; then
+            cp "$IOS_GOOGLE_SERVICES" ios/Runner/GoogleService-Info.plist
+            echo "Copied GoogleService-Info.plist from IOS_GOOGLE_SERVICES"
+          else
+            echo "IOS_GOOGLE_SERVICES not set — Firebase на iOS может не собраться"
+          fi
+      - name: Set up keychain
+        script: keychain initialize
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+      - name: Add certificates to keychain
+        script: keychain add-certificates
+      - name: Use profiles in Xcode project
+        script: xcode-project use-profiles
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: CocoaPods
+        script: |
+          cd ios && pod install
+      - name: Flutter build ipa
+        script: |
+          flutter build ipa --release \
+            --export-options-plist="$HOME/export_options.plist"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
