@@ -61,3 +61,19 @@ jobs:
         with:
           name: android-appbundle
           path: build/app/outputs/bundle/release/*.aab
+
+      # Нужны секреты репозитория (Settings → Secrets):
+      #   GOOGLE_DRIVE_SERVICE_ACCOUNT — JSON ключ сервисного аккаунта (весь файл).
+      #   GOOGLE_DRIVE_FOLDER_ID — ID папки из URL Drive (.../folders/ID).
+      # Папку расшарьте на e-mail вида xxx@xxx.iam.gserviceaccount.com с правом «Редактор».
+      # В GCP включите API «Google Drive API» для того же проекта, что и ключ.
+      - name: Upload release builds to Google Drive
+        if: github.event_name == 'push'
+        env:
+          GOOGLE_DRIVE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT }}
+          GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          python3 -m pip install --quiet google-api-python-client google-auth-httplib2 google-auth
+          python3 .github/scripts/upload_to_google_drive.py
