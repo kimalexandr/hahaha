@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:eventa/src/app/app.dart';
 import 'package:eventa/src/core/crash/crash_reporting.dart';
 import 'package:eventa/src/core/di/injection.dart';
+import 'package:eventa/src/core/startup_demo_fallback_notice.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
@@ -65,20 +66,36 @@ bool get _crashlyticsAvailable =>
 
 Future<void> _bootstrap() async {
   await Hive.initFlutter();
-  if (!kIsWeb &&
+
+  final mobileNative =
+      !kIsWeb &&
       (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS)) {
+          defaultTargetPlatform == TargetPlatform.iOS);
+
+  if (!mobileNative) {
+    await configureDependencies(environment: 'mock');
+    return;
+  }
+
+  try {
     await Firebase.initializeApp();
     await configureFirebaseCrashReporting();
+    await configureDependencies(environment: Environment.dev);
+  } catch (error, stackTrace) {
+    await _reportStartupFailure(error, stackTrace);
+    try {
+      await getIt.reset(dispose: true);
+    } catch (_) {}
+    await configureDependencies(environment: 'mock');
+    scheduleStartupDemoFallbackNotice(error, stackTrace);
+    assert(() {
+      debugPrint(
+        'eventa: не удалось подключить Firebase/Google (демо-режим). '
+        'Причина: $error',
+      );
+      return true;
+    }());
   }
-  await configureDependencies(
-    environment:
-        (!kIsWeb &&
-                (defaultTargetPlatform == TargetPlatform.android ||
-                    defaultTargetPlatform == TargetPlatform.iOS))
-            ? Environment.dev
-            : 'mock',
-  );
 }
 
 class StartupErrorApp extends StatelessWidget {
