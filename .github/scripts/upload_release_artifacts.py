@@ -75,7 +75,7 @@ def _upload_gcs(paths: list[str], info: dict) -> bool:
     return True
 
 
-def _upload_drive(paths: list[str], info: dict, folder_id: str) -> bool:
+def _upload_drive(paths: list[str], info: dict, folder_id: str) -> tuple[bool, bool]:
     from google.oauth2 import service_account
     from googleapiclient.discovery import build
     from googleapiclient.errors import HttpError
@@ -118,8 +118,9 @@ def _upload_drive(paths: list[str], info: dict, folder_id: str) -> bool:
                     "участником, ID папки из этого диска.\n",
                     file=sys.stderr,
                 )
-            return False
-    return True
+                return False, True
+            return False, False
+    return True, False
 
 
 def main() -> int:
@@ -166,6 +167,7 @@ def main() -> int:
 
     ok_gcs = True
     ok_drive = True
+    drive_quota_exceeded = False
     tried_gcs = gcs_bucket
     tried_drive = bool(folder_id)
 
@@ -177,7 +179,7 @@ def main() -> int:
             print(f"GCS ошибка: {e}", file=sys.stderr)
 
     if tried_drive:
-        ok_drive = _upload_drive(paths, info, folder_id)
+        ok_drive, drive_quota_exceeded = _upload_drive(paths, info, folder_id)
 
     if tried_gcs and tried_drive:
         if ok_gcs and ok_drive:
@@ -193,7 +195,16 @@ def main() -> int:
 
     if tried_gcs:
         return 0 if ok_gcs else 1
-    return 0 if ok_drive else 1
+    if ok_drive:
+        return 0
+    if drive_quota_exceeded:
+        print(
+            "Предупреждение: пропускаю падение CI, т.к. Drive с service account без Shared drive "
+            "не поддерживает квоту. Артефакты доступны в GitHub Artifacts.",
+            file=sys.stderr,
+        )
+        return 0
+    return 1
 
 
 if __name__ == "__main__":
