@@ -2,10 +2,11 @@
 String? _pendingDemoFallbackNotice;
 
 void scheduleStartupDemoFallbackNotice(Object error, StackTrace stackTrace) {
-  final sb = StringBuffer()
-    ..writeln(error.toString())
-    ..writeln()
-    ..writeln(stackTrace.toString());
+  final sb =
+      StringBuffer()
+        ..writeln(error.toString())
+        ..writeln()
+        ..writeln(stackTrace.toString());
   _pendingDemoFallbackNotice = sb.toString();
 }
 

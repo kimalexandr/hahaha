@@ -32,22 +32,23 @@ class _AppState extends State<App> {
       showDialog<void>(
         context: navContext,
         barrierDismissible: true,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Демо-режим'),
-          content: SingleChildScrollView(
-            child: SelectableText(
-              'Не удалось подключиться к Firebase/Google. '
-              'Включена работа на демо-данных.\n\n'
-              'Причина:\n$message',
+        builder:
+            (dialogContext) => AlertDialog(
+              title: const Text('Демо-режим'),
+              content: SingleChildScrollView(
+                child: SelectableText(
+                  'Не удалось подключиться к Firebase/Google. '
+                  'Включена работа на демо-данных.\n\n'
+                  'Причина:\n$message',
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
       );
     });
   }
