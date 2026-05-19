@@ -2,14 +2,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eventa/src/features/auth/data/google_sign_in_helper.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:injectable/injectable.dart';
 
 @LazySingleton(as: AuthRepository, env: [Environment.dev])
 class FirebaseAuthRepository implements AuthRepository {
+  FirebaseAuthRepository() : _googleSignIn = createGoogleSignIn();
+
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn;
 
   @override
   Stream<bool> get authStateChanges =>
@@ -23,28 +25,18 @@ class FirebaseAuthRepository implements AuthRepository {
     );
   }
 
-  bool get _useFirebaseGoogleProvider =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS);
-
   @override
   Future<void> signInWithGoogle() async {
-    // Android/iOS: нативный поток Firebase (обходит google_sign_in 7 / Credential Manager [16]).
-    if (_useFirebaseGoogleProvider) {
-      await _firebaseAuth.signInWithProvider(GoogleAuthProvider());
-      return;
+    final account = await _googleSignIn.signIn();
+    if (account == null) {
+      throw FirebaseAuthException(
+        code: 'google-sign-in-cancelled',
+        message: 'Вход через Google отменён.',
+      );
     }
 
-    await ensureGoogleSignInInitialized();
-    const scopes = <String>['email', 'profile'];
-    final googleUser = await GoogleSignIn.instance.authenticate();
-    final idToken = googleUser.authentication.idToken;
-
-    var clientAuth = await googleUser.authorizationClient
-        .authorizationForScopes(scopes);
-    clientAuth ??= await googleUser.authorizationClient.authorizeScopes(scopes);
-
+    final auth = await account.authentication;
+    final idToken = auth.idToken;
     if (idToken == null || idToken.isEmpty) {
       throw FirebaseAuthException(
         code: 'google-id-token-missing',
@@ -55,8 +47,8 @@ class FirebaseAuthRepository implements AuthRepository {
 
     await _firebaseAuth.signInWithCredential(
       GoogleAuthProvider.credential(
+        accessToken: auth.accessToken,
         idToken: idToken,
-        accessToken: clientAuth.accessToken,
       ),
     );
   }
@@ -64,8 +56,7 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<void> signOut() async {
     try {
-      await ensureGoogleSignInInitialized();
-      await GoogleSignIn.instance.signOut();
+      await _googleSignIn.signOut();
     } catch (_) {}
     await _firebaseAuth.signOut();
   }
