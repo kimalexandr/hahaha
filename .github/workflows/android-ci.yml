@@ -45,6 +45,14 @@ jobs:
       - run: dart format --set-exit-if-changed .
       - run: flutter test
 
+      # SHA-1/SHA-256 ключа, которым CI подписывает APK — добавьте в Firebase (Android app).
+      - name: Android signing fingerprints (for Firebase Google Sign-In)
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew :app:signingReport --no-daemon 2>&1 | tee ../signing-report-ci.log
+          echo "--- Copy SHA-1 / SHA-256 from Variant: release above into Firebase ---"
+
       - name: Build APK & App Bundle
         run: |
           flutter build apk --release
