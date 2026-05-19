@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:eventa/src/features/auth/data/google_sign_in_helper.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -23,13 +24,25 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> signInWithGoogle() async {
+    await ensureGoogleSignInInitialized();
     final googleSignIn = GoogleSignIn.instance;
-    await googleSignIn.initialize();
-    final googleUser = await googleSignIn.authenticate();
-    final googleAuth = googleUser.authentication;
-    final credential = GoogleAuthProvider.credential(
-      idToken: googleAuth.idToken,
+    try {
+      await googleSignIn.signOut();
+    } catch (_) {}
+
+    final googleUser = await googleSignIn.authenticate(
+      scopeHint: const ['email', 'profile', 'openid'],
     );
+    final googleAuth = googleUser.authentication;
+    final idToken = googleAuth.idToken;
+    if (idToken == null || idToken.isEmpty) {
+      throw FirebaseAuthException(
+        code: 'google-id-token-missing',
+        message:
+            'Google не вернул idToken. Проверьте Web Client ID и SHA-1 в Firebase.',
+      );
+    }
+    final credential = GoogleAuthProvider.credential(idToken: idToken);
     await _firebaseAuth.signInWithCredential(credential);
   }
 

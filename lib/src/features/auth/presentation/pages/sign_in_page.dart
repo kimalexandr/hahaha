@@ -1,5 +1,7 @@
 import 'package:eventa/src/core/di/injection.dart';
+import 'package:eventa/src/features/auth/data/google_sign_in_helper.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class SignInPage extends StatefulWidget {
@@ -37,6 +39,13 @@ class _SignInPageState extends State<SignInPage> {
     await _performSignIn(() => getIt<AuthRepository>().signInWithGoogle());
   }
 
+  String _signInErrorMessage(Object error) {
+    if (error is FirebaseAuthException && error.message != null) {
+      return error.message!;
+    }
+    return googleSignInUserMessage(error);
+  }
+
   Future<void> _performSignIn(Future<void> Function() signInMethod) async {
     setState(() {
       _isLoading = true;
@@ -49,8 +58,9 @@ class _SignInPageState extends State<SignInPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
+            content: Text(_signInErrorMessage(e)),
             backgroundColor: Theme.of(context).colorScheme.error,
+            duration: const Duration(seconds: 8),
           ),
         );
       }
