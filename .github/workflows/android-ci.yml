@@ -62,13 +62,17 @@ jobs:
       - run: dart format --set-exit-if-changed .
       - run: flutter test
 
-      # SHA-1/SHA-256 ключа, которым CI подписывает APK — добавьте в Firebase (Android app).
+      # SHA ключа CI (gradlew в репо нет — он в android/.gitignore; используем тот же debug.keystore, что и flutter build).
       - name: Android signing fingerprints (for Firebase Google Sign-In)
         run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew :app:signingReport --no-daemon 2>&1 | tee ../signing-report-ci.log
-          echo "--- Copy SHA-1 / SHA-256 from Variant: release above into Firebase ---"
+          STORE="$HOME/.android/debug.keystore"
+          {
+            echo "CI signing key (debug.keystore, used for release APK in this project)"
+            echo "Store: $STORE"
+            echo "Alias: androiddebugkey"
+            keytool -list -v -keystore "$STORE" -alias androiddebugkey \
+              -storepass android -keypass android
+          } 2>&1 | tee signing-report-ci.log
 
       - name: Firebase SHA (job summary)
         run: |
@@ -78,7 +82,7 @@ jobs:
             echo ""
             echo 'Добавьте в Firebase → Android app → **Add fingerprint** и в Google Cloud → **Android OAuth client**:'
             echo ""
-            awk '/Variant: release$/,/^----------$/' signing-report-ci.log | grep -E 'SHA1:|SHA-256:' || true
+            grep -E 'SHA1:|SHA256:' signing-report-ci.log | head -10 || true
             echo ""
             echo "После добавления: скачайте новый **google-services.json** → \`android/app/\`, закоммитьте, дождитесь новой сборки."
           } >> "$GITHUB_STEP_SUMMARY"
