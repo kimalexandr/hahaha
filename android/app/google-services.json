@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "572832146583-lu3trepecu39e0c9nh8kfkl39eqi9oje.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.eventus.app",
+            "certificate_hash": "527b1a25ce8b577e2115dc6dedc6d674b4f24197"
+          }
+        },
+        {
           "client_id": "572832146583-3c8pecftaj1cjmll91i246eg3eo0gp2u.apps.googleusercontent.com",
           "client_type": 3
         }
