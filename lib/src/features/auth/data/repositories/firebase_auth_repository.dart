@@ -25,16 +25,17 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<void> signInWithGoogle() async {
     await ensureGoogleSignInInitialized();
-    final googleSignIn = GoogleSignIn.instance;
-    try {
-      await googleSignIn.signOut();
-    } catch (_) {}
 
-    final googleUser = await googleSignIn.authenticate(
-      scopeHint: const ['email', 'profile', 'openid'],
+    // google_sign_in 7: authenticate = вход, authorizeScopes = accessToken для Firebase.
+    const scopes = <String>['email', 'profile'];
+    final googleUser = await GoogleSignIn.instance.authenticate();
+    final idToken = googleUser.authentication.idToken;
+
+    var clientAuth = await googleUser.authorizationClient.authorizationForScopes(
+      scopes,
     );
-    final googleAuth = googleUser.authentication;
-    final idToken = googleAuth.idToken;
+    clientAuth ??= await googleUser.authorizationClient.authorizeScopes(scopes);
+
     if (idToken == null || idToken.isEmpty) {
       throw FirebaseAuthException(
         code: 'google-id-token-missing',
@@ -42,7 +43,11 @@ class FirebaseAuthRepository implements AuthRepository {
             'Google не вернул idToken. Проверьте Web Client ID и SHA-1 в Firebase.',
       );
     }
-    final credential = GoogleAuthProvider.credential(idToken: idToken);
+
+    final credential = GoogleAuthProvider.credential(
+      idToken: idToken,
+      accessToken: clientAuth.accessToken,
+    );
     await _firebaseAuth.signInWithCredential(credential);
   }
 

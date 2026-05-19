@@ -18,11 +18,10 @@ String googleSignInUserMessage(Object error) {
     if (text.contains('reauth') ||
         text.contains('[16]') ||
         text.contains('Account reauth failed')) {
-      return 'Не удалось войти через Google: неверная настройка приложения в '
-          'Firebase (чаще всего SHA-1 ключа подписи). '
-          'В консоли Firebase → проект eventus-f450f → настройки Android-приложения '
-          'добавьте отпечаток SHA-1 и SHA-256 для debug и release, '
-          'скачайте новый google-services.json, пересоберите и установите APK заново.';
+      return 'Не удалось войти через Google (код 16 / reauth). '
+          'Проверьте: SHA CI в Firebase, новый google-services.json, APK из последней '
+          'сборки Actions, Google включён в Authentication, ваш email в Test users '
+          '(OAuth consent). Детали: $text';
     }
     if (error.code.toString().contains('canceled') &&
         !text.contains('reauth') &&
