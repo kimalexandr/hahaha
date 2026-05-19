@@ -15,11 +15,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc(this._authRepository) : super(AuthInitial()) {
     on<AuthCheckRequested>((event, emit) {
       _authStateSubscription?.cancel();
-      _authStateSubscription = _authRepository.authStateChanges.listen((
-        isAuthenticated,
-      ) {
-        add(_AuthStatusChanged(isAuthenticated));
-      });
+      _authStateSubscription = _authRepository.authStateChanges.listen(
+        (isAuthenticated) {
+          add(_AuthStatusChanged(isAuthenticated));
+        },
+        onError: (Object error, StackTrace stackTrace) {
+          addError(error, stackTrace);
+          add(const _AuthStatusChanged(false));
+        },
+      );
     });
 
     on<_AuthStatusChanged>((event, emit) {

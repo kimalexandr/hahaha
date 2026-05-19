@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:eventa/src/app/app.dart';
+import 'package:eventa/src/core/app_runtime_config.dart';
 import 'package:eventa/src/core/crash/crash_reporting.dart';
 import 'package:eventa/src/core/di/injection.dart';
 import 'package:eventa/src/core/startup_demo_fallback_notice.dart';
@@ -31,8 +32,10 @@ Future<void> main() async {
   );
 }
 
+bool get _firebaseInitialized => Firebase.apps.isNotEmpty;
+
 Future<void> _reportStartupFailure(Object error, StackTrace stackTrace) async {
-  if (!_crashlyticsAvailable) return;
+  if (!_crashlyticsAvailable || !_firebaseInitialized) return;
   try {
     await FirebaseCrashlytics.instance.recordError(
       error,
@@ -45,7 +48,7 @@ Future<void> _reportStartupFailure(Object error, StackTrace stackTrace) async {
 }
 
 void _reportStartupFailureSync(Object error, StackTrace stackTrace) {
-  if (!_crashlyticsAvailable) return;
+  if (!_crashlyticsAvailable || !_firebaseInitialized) return;
   try {
     unawaited(() async {
       await FirebaseCrashlytics.instance.recordError(
@@ -73,15 +76,22 @@ Future<void> _bootstrap() async {
           defaultTargetPlatform == TargetPlatform.iOS);
 
   if (!mobileNative) {
+    appUsesFirebaseBackend = false;
     await configureDependencies(environment: 'mock');
     return;
   }
 
   try {
     await Firebase.initializeApp();
-    await configureFirebaseCrashReporting();
+    appUsesFirebaseBackend = true;
+    try {
+      await configureFirebaseCrashReporting();
+    } catch (e, st) {
+      debugPrint('Crashlytics init skipped: $e\n$st');
+    }
     await configureDependencies(environment: Environment.dev);
   } catch (error, stackTrace) {
+    appUsesFirebaseBackend = false;
     await _reportStartupFailure(error, stackTrace);
     try {
       await getIt.reset(dispose: true);

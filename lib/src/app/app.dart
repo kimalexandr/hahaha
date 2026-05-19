@@ -60,6 +60,24 @@ class _AppState extends State<App> {
       child: MaterialApp(
         navigatorKey: _navigatorKey,
         title: 'Eventa',
+        builder: (context, child) {
+          ErrorWidget.builder = (details) {
+            return Material(
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: SingleChildScrollView(
+                    child: SelectableText(
+                      'Ошибка интерфейса:\n${details.exceptionAsString()}\n\n'
+                      '${details.stack}',
+                    ),
+                  ),
+                ),
+              ),
+            );
+          };
+          return child ?? const SizedBox.shrink();
+        },
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
@@ -90,6 +108,18 @@ class AuthGate extends StatelessWidget {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
                   body: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (snapshot.hasError) {
+                return Scaffold(
+                  body: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: SingleChildScrollView(
+                      child: SelectableText(
+                        'Ошибка профиля:\n${snapshot.error}',
+                      ),
+                    ),
+                  ),
                 );
               }
               if (snapshot.hasData && snapshot.data == true) {

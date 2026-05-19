@@ -13,9 +13,14 @@ Future<void> configureFirebaseCrashReporting() async {
     unawaited(_flushFlutterFatal(details));
   };
 
+  final previousPlatformOnError = PlatformDispatcher.instance.onError;
   PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
     unawaited(_flushPlatformError(error, stack));
-    return true;
+    // Не глотаем ошибку — иначе приложение падает без экрана/лога.
+    if (previousPlatformOnError != null) {
+      return previousPlatformOnError(error, stack);
+    }
+    return false;
   };
 
   await FirebaseCrashlytics.instance.setCustomKey('kDebugMode', kDebugMode);

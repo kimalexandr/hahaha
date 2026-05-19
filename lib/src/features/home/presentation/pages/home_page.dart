@@ -5,6 +5,7 @@ import 'package:eventa/src/features/home/data/local/home_local_storage.dart';
 import 'package:eventa/src/features/home/data/remote/home_remote_storage.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 import 'package:eventa/src/features/home/presentation/pages/home_components.dart';
+import 'package:eventa/src/core/app_runtime_config.dart';
 import 'package:flutter/foundation.dart';
 
 class HomePage extends StatefulWidget {
@@ -19,6 +20,7 @@ class _HomePageState extends State<HomePage> {
   static const int _pageSize = 10;
   final HomeLocalStorage _localStorage = HomeLocalStorage();
   final bool _useFirebaseBackend =
+      appUsesFirebaseBackend &&
       !kIsWeb &&
       (defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS);
