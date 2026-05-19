@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eventa/src/features/auth/data/google_sign_in_helper.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:injectable/injectable.dart';
 
@@ -22,11 +23,20 @@ class FirebaseAuthRepository implements AuthRepository {
     );
   }
 
+  bool get _useFirebaseGoogleProvider =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
   @override
   Future<void> signInWithGoogle() async {
-    await ensureGoogleSignInInitialized();
+    // Android/iOS: нативный поток Firebase (обходит google_sign_in 7 / Credential Manager [16]).
+    if (_useFirebaseGoogleProvider) {
+      await _firebaseAuth.signInWithProvider(GoogleAuthProvider());
+      return;
+    }
 
-    // google_sign_in 7: authenticate = вход, authorizeScopes = accessToken для Firebase.
+    await ensureGoogleSignInInitialized();
     const scopes = <String>['email', 'profile'];
     final googleUser = await GoogleSignIn.instance.authenticate();
     final idToken = googleUser.authentication.idToken;
@@ -43,11 +53,12 @@ class FirebaseAuthRepository implements AuthRepository {
       );
     }
 
-    final credential = GoogleAuthProvider.credential(
-      idToken: idToken,
-      accessToken: clientAuth.accessToken,
+    await _firebaseAuth.signInWithCredential(
+      GoogleAuthProvider.credential(
+        idToken: idToken,
+        accessToken: clientAuth.accessToken,
+      ),
     );
-    await _firebaseAuth.signInWithCredential(credential);
   }
 
   @override
