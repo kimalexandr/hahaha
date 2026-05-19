@@ -26,6 +26,23 @@ jobs:
           flutter-version: '3.41.9'
           cache: true
 
+      # Один и тот же debug.keystore на всех сборках CI → стабильный SHA для Firebase Google Sign-In.
+      - name: Cache Android debug keystore
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-debug-keystore-${{ runner.os }}-eventa-v1
+
+      - name: Ensure Android debug keystore exists
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkey -v -keystore ~/.android/debug.keystore \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
       - run: flutter pub get
       - run: dart analyze
 
@@ -52,6 +69,25 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:signingReport --no-daemon 2>&1 | tee ../signing-report-ci.log
           echo "--- Copy SHA-1 / SHA-256 from Variant: release above into Firebase ---"
+
+      - name: Firebase SHA (job summary)
+        run: |
+          {
+            echo "## SHA для Firebase (APK с GitHub Actions)"
+            echo "Проект: **eventus-f450f**, package: **com.eventus.app**"
+            echo ""
+            echo 'Добавьте в Firebase → Android app → **Add fingerprint** и в Google Cloud → **Android OAuth client**:'
+            echo ""
+            awk '/Variant: release$/,/^----------$/' signing-report-ci.log | grep -E 'SHA1:|SHA-256:' || true
+            echo ""
+            echo "После добавления: скачайте новый **google-services.json** → \`android/app/\`, закоммитьте, дождитесь новой сборки."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload signing report
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-signing-report
+          path: signing-report-ci.log
 
       - name: Build APK & App Bundle
         run: |
