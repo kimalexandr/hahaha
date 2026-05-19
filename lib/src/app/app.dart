@@ -60,24 +60,6 @@ class _AppState extends State<App> {
       child: MaterialApp(
         navigatorKey: _navigatorKey,
         title: 'Eventa',
-        builder: (context, child) {
-          ErrorWidget.builder = (details) {
-            return Material(
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: SingleChildScrollView(
-                    child: SelectableText(
-                      'Ошибка интерфейса:\n${details.exceptionAsString()}\n\n'
-                      '${details.stack}',
-                    ),
-                  ),
-                ),
-              ),
-            );
-          };
-          return child ?? const SizedBox.shrink();
-        },
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
