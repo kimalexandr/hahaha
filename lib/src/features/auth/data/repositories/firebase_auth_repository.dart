@@ -31,9 +31,8 @@ class FirebaseAuthRepository implements AuthRepository {
     final googleUser = await GoogleSignIn.instance.authenticate();
     final idToken = googleUser.authentication.idToken;
 
-    var clientAuth = await googleUser.authorizationClient.authorizationForScopes(
-      scopes,
-    );
+    var clientAuth = await googleUser.authorizationClient
+        .authorizationForScopes(scopes);
     clientAuth ??= await googleUser.authorizationClient.authorizeScopes(scopes);
 
     if (idToken == null || idToken.isEmpty) {
