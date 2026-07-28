@@ -31,6 +31,6 @@ void main() {
 
     expect(find.text('Eventa'), findsOneWidget);
     expect(find.text('Войти через Google'), findsOneWidget);
-    expect(find.text('Создать аккаунт'), findsOneWidget);
+    expect(find.text('Нет аккаунта? Зарегистрироваться'), findsOneWidget);
   });
 }
