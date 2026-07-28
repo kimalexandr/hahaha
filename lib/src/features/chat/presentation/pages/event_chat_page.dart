@@ -1,7 +1,9 @@
+import 'dart:async';
+
 import 'package:eventa/src/core/di/injection.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
-import 'package:eventa/src/features/chat/data/event_chat_local_storage.dart';
 import 'package:eventa/src/features/chat/domain/entities/chat_message.dart';
+import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
 import 'package:flutter/material.dart';
 
 class EventChatPage extends StatefulWidget {
@@ -19,8 +21,9 @@ class EventChatPage extends StatefulWidget {
 }
 
 class _EventChatPageState extends State<EventChatPage> {
-  final _storage = EventChatLocalStorage();
+  final _repo = MeetingRepository();
   final _controller = TextEditingController();
+  StreamSubscription<List<ChatMessage>>? _sub;
   List<ChatMessage> _messages = [];
   bool _loading = true;
   String _uid = 'user-1';
@@ -28,39 +31,42 @@ class _EventChatPageState extends State<EventChatPage> {
   @override
   void initState() {
     super.initState();
-    _load();
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    _uid = await getIt<AuthRepository>().currentUserId() ?? 'user-1';
+    _sub = _repo.watchEventChat(widget.eventId).listen((messages) {
+      if (!mounted) return;
+      setState(() {
+        _messages = messages;
+        _loading = false;
+      });
+    }, onError: (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    });
   }
 
   @override
   void dispose() {
+    _sub?.cancel();
     _controller.dispose();
     super.dispose();
-  }
-
-  Future<void> _load() async {
-    _uid = await getIt<AuthRepository>().currentUserId() ?? 'user-1';
-    final messages = await _storage.readMessages(widget.eventId);
-    if (!mounted) return;
-    setState(() {
-      _messages = messages;
-      _loading = false;
-    });
   }
 
   Future<void> _send() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    await _storage.addMessage(
-      ChatMessage(
-        id: 'emsg-${DateTime.now().millisecondsSinceEpoch}',
-        chatId: widget.eventId,
-        senderId: _uid,
-        text: text,
-        createdAt: DateTime.now(),
-      ),
-    );
     _controller.clear();
-    await _load();
+    await _repo.sendEventChatMessage(
+      eventId: widget.eventId,
+      senderId: _uid,
+      text: text,
+    );
+    final latest = await _repo.watchEventChat(widget.eventId).first;
+    if (!mounted) return;
+    setState(() => _messages = latest);
   }
 
   @override

@@ -1,11 +1,10 @@
 import 'package:eventa/src/core/di/injection.dart';
+import 'package:eventa/src/core/meetings_backend_config.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
-import 'package:eventa/src/features/chat/data/chat_local_storage.dart';
-import 'package:eventa/src/features/chat/presentation/pages/event_chat_page.dart';
 import 'package:eventa/src/features/chat/presentation/pages/meeting_chat_page.dart';
 import 'package:eventa/src/features/meetings/data/demo_candidate_catalog.dart';
 import 'package:eventa/src/features/meetings/data/meeting_interest_storage.dart';
-import 'package:eventa/src/features/meetings/data/meeting_local_storage.dart';
+import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
 import 'package:eventa/src/features/meetings/domain/compatibility_score.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
 import 'package:eventa/src/features/profile/data/profile_persistence.dart';
@@ -23,19 +22,26 @@ class MeetingCandidatesPage extends StatefulWidget {
 
 class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
   final _interestStorage = MeetingInterestStorage();
+  final _repo = MeetingRepository();
   UserProfile? _me;
+  Meeting? _meeting;
   List<_CandidateView> _candidates = [];
   bool _loading = true;
   bool _verifiedOnly = false;
+  bool _joining = false;
   String? _uid;
+
+  Meeting get meeting => _meeting ?? widget.meeting;
 
   @override
   void initState() {
     super.initState();
+    _meeting = widget.meeting;
     _load();
   }
 
   Future<void> _load() async {
+    setState(() => _loading = true);
     final uid = await getIt<AuthRepository>().currentUserId() ?? 'user-1';
     final me =
         await ProfilePersistence().read(uid) ??
@@ -51,52 +57,50 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
           readyForMeeting: true,
         );
 
-    final people =
-        DemoCandidateCatalog.all(excludeOwnerId: uid)
-            .where(
-              (p) =>
-                  p.readyForMeeting &&
-                  (p.city.isEmpty ||
-                      p.city.toLowerCase() ==
-                          widget.meeting.city.toLowerCase()) &&
-                  (!_verifiedOnly || p.phoneVerified),
-            )
-            .toList();
+    final fresh = await _repo.readById(widget.meeting.id) ?? widget.meeting;
+    final participantIds = await _repo.participantIds(fresh.id);
+
+    List<UserProfile> people = [];
+    final eventId = fresh.linkedEventId;
+    if (useFirestoreForMeetings && eventId != null && eventId.isNotEmpty) {
+      people = await _repo.liveEventCandidates(
+        eventId: eventId,
+        excludeUids: {...participantIds, uid},
+      );
+    }
+    if (people.isEmpty) {
+      people =
+          DemoCandidateCatalog.all(excludeOwnerId: uid)
+              .where(
+                (p) =>
+                    p.readyForMeeting &&
+                    !participantIds.contains(p.ownerId) &&
+                    (p.city.isEmpty ||
+                        p.city.toLowerCase() == fresh.city.toLowerCase()) &&
+                    (!_verifiedOnly || p.phoneVerified),
+              )
+              .toList();
+    } else if (_verifiedOnly) {
+      people = people.where((p) => p.phoneVerified).toList();
+    }
 
     final views = <_CandidateView>[];
     for (final person in people) {
       final interested = await _interestStorage.hasInterest(
-        meetingId: widget.meeting.id,
+        meetingId: fresh.id,
         fromUserId: uid,
         toUserId: person.ownerId,
       );
-      // Для демо: взаимность симулируем, если уже выразили интерес
-      // и у кандидата есть пересечение интересов > 0.
       final score = CompatibilityScore.byInterests(
         me.interests,
         person.interests,
       );
-      var mutual = await _interestStorage.isMutual(
-        meetingId: widget.meeting.id,
-        userA: uid,
-        userB: person.ownerId,
-      );
-      if (interested && score >= 20 && !mutual) {
-        // Авто-взаимность для демо, чтобы можно было проверить чат.
-        await _interestStorage.expressInterest(
-          meetingId: widget.meeting.id,
-          fromUserId: person.ownerId,
-          toUserId: uid,
-        );
-        mutual = true;
-      }
       views.add(
         _CandidateView(
           profile: person,
           score: score,
           shared: CompatibilityScore.sharedInterests(me, person),
           interested: interested,
-          mutual: mutual,
         ),
       );
     }
@@ -106,18 +110,53 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
     setState(() {
       _uid = uid;
       _me = me;
+      _meeting = fresh;
       _candidates = views;
       _loading = false;
     });
   }
 
-  Future<void> _expressInterest(_CandidateView candidate) async {
+  Future<void> _joinMyself() async {
+    final uid = _uid;
+    final me = _me;
+    if (uid == null || me == null || _joining) return;
+    setState(() => _joining = true);
+    try {
+      final updated = await _repo.join(
+        meetingId: meeting.id,
+        uid: uid,
+        compatibilityScore: 100,
+      );
+      if (!mounted) return;
+      setState(() => _meeting = updated);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Вы в компании (${updated.joinedCount}/${updated.maxParticipants})',
+          ),
+        ),
+      );
+      await _openChat();
+    } on MeetingFullException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Место уже заняли')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось вступить')),
+      );
+    } finally {
+      if (mounted) setState(() => _joining = false);
+      await _load();
+    }
+  }
+
+  Future<void> _inviteOrJoinDemo(_CandidateView candidate) async {
     final uid = _uid;
     if (uid == null) return;
 
-    // Кандидат присоединяется к группе встречи (не парный мэтч).
-    final storage = MeetingLocalStorage();
-    var meeting = widget.meeting;
     if (meeting.isFull) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Набор на встречу уже закрыт')),
@@ -125,77 +164,78 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
       return;
     }
 
-    final participants =
-        {...meeting.participants, uid, candidate.profile.ownerId}.toList();
-    final statuses = Map<String, String>.from(meeting.participantStatus);
-    statuses[uid] = 'joined';
-    statuses[candidate.profile.ownerId] = 'joined';
-    meeting = meeting.copyWith(
-      participants: participants,
-      participantStatus: statuses,
-      status:
-          participants.where((id) => statuses[id] == 'joined').length >=
-                  meeting.maxParticipants
-              ? MeetingStatus.matched
-              : MeetingStatus.open,
-    );
-    await storage.upsert(meeting);
-
-    await _interestStorage.expressInterest(
-      meetingId: meeting.id,
-      fromUserId: uid,
-      toUserId: candidate.profile.ownerId,
-    );
-    // Демо: кандидат тоже «принимает»
-    await _interestStorage.expressInterest(
-      meetingId: meeting.id,
-      fromUserId: candidate.profile.ownerId,
-      toUserId: uid,
-    );
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${candidate.profile.name} добавлен(а) в компанию '
-          '(${meeting.joinedCount}/${meeting.maxParticipants})',
-        ),
-      ),
-    );
-
-    if (meeting.maxParticipants > 2) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder:
-              (_) => EventChatPage(
-                eventId: meeting.id,
-                eventTitle:
-                    meeting.topic.isEmpty ? meeting.venueName : meeting.topic,
-              ),
-        ),
-      );
-    } else {
-      final chatId = ChatLocalStorage.chatIdFor(
-        meetingId: meeting.id,
-        userA: uid,
-        userB: candidate.profile.ownerId,
-      );
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder:
-              (_) => MeetingChatPage(
-                chatId: chatId,
-                myUserId: uid,
-                peerName: candidate.profile.name,
-              ),
-        ),
+    try {
+      if (useFirestoreForMeetings) {
+        // Создатель приглашает; кандидат потом join'ится сам.
+        await _repo.invite(
+          meetingId: meeting.id,
+          uid: candidate.profile.ownerId,
+          compatibilityScore: candidate.score,
+        );
+        await _interestStorage.expressInterest(
+          meetingId: meeting.id,
+          fromUserId: uid,
+          toUserId: candidate.profile.ownerId,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Приглашение отправлено: ${candidate.profile.name}',
+            ),
+          ),
+        );
+      } else {
+        // Hive-демо: добавляем кандидата сразу.
+        await _repo.join(
+          meetingId: meeting.id,
+          uid: candidate.profile.ownerId,
+          compatibilityScore: candidate.score,
+        );
+        await _interestStorage.expressInterest(
+          meetingId: meeting.id,
+          fromUserId: uid,
+          toUserId: candidate.profile.ownerId,
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${candidate.profile.name} добавлен(а) в компанию'),
+          ),
+        );
+        await _openChat(peerName: candidate.profile.name);
+      }
+    } on MeetingFullException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Место уже заняли')),
       );
     }
     await _load();
   }
 
+  Future<void> _openChat({String? peerName}) async {
+    final uid = _uid;
+    if (uid == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (_) => MeetingChatPage(
+              meetingId: meeting.id,
+              myUserId: uid,
+              title:
+                  peerName ??
+                  (meeting.topic.isEmpty ? meeting.venueName : meeting.topic),
+            ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final iAmJoined = meeting.participantStatus[_uid] == 'joined' ||
+        meeting.participants.contains(_uid);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Компания на встречу')),
       body:
@@ -207,13 +247,32 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                     child: Text(
-                      '${widget.meeting.topic.isEmpty ? widget.meeting.venueName : widget.meeting.topic}\n'
-                      '${widget.meeting.purpose.labelRu} · ${widget.meeting.format.labelRu} · '
-                      '${widget.meeting.joinedCount}/${widget.meeting.maxParticipants} чел. · '
-                      '${widget.meeting.venueName}\n'
+                      '${meeting.topic.isEmpty ? meeting.venueName : meeting.topic}\n'
+                      '${meeting.purpose.labelRu} · ${meeting.format.labelRu} · '
+                      '${meeting.joinedCount}/${meeting.maxParticipants} чел. · '
+                      '${meeting.venueName}\n'
                       'Ваши интересы: ${(_me?.interests ?? const []).join(', ')}',
                     ),
                   ),
+                  if (!iAmJoined)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: FilledButton(
+                        onPressed: _joining ? null : _joinMyself,
+                        child: Text(
+                          _joining ? 'Вступаем…' : 'Вступить в встречу',
+                        ),
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: OutlinedButton.icon(
+                        onPressed: () => _openChat(),
+                        icon: const Icon(Icons.chat_bubble_outline),
+                        label: const Text('Чат встречи'),
+                      ),
+                    ),
                   SwitchListTile(
                     title: const Text('Только подтверждённые профили'),
                     value: _verifiedOnly,
@@ -254,57 +313,26 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
                                     ),
                                     subtitle: Text(
                                       '${item.profile.bio}\n'
-                                      'Общее: ${item.shared.isEmpty ? '—' : item.shared.join(', ')}'
-                                      '${item.mutual ? '\nВзаимный интерес' : ''}',
+                                      'Общее: ${item.shared.isEmpty ? '—' : item.shared.join(', ')}',
                                     ),
                                     isThreeLine: true,
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        if (item.mutual)
-                                          IconButton(
-                                            tooltip: 'Чат',
-                                            onPressed: () {
-                                              final uid = _uid;
-                                              if (uid == null) return;
-                                              final chatId =
-                                                  ChatLocalStorage.chatIdFor(
-                                                    meetingId:
-                                                        widget.meeting.id,
-                                                    userA: uid,
-                                                    userB: item.profile.ownerId,
-                                                  );
-                                              Navigator.of(context).push(
-                                                MaterialPageRoute(
-                                                  builder:
-                                                      (_) => MeetingChatPage(
-                                                        chatId: chatId,
-                                                        myUserId: uid,
-                                                        peerName:
-                                                            item.profile.name,
-                                                      ),
-                                                ),
-                                              );
-                                            },
-                                            icon: const Icon(
-                                              Icons.chat_bubble_outline,
-                                            ),
-                                          ),
+                                    trailing:
                                         item.interested
                                             ? const Icon(
                                               Icons.favorite,
                                               color: Colors.red,
                                             )
                                             : IconButton(
-                                              tooltip: 'Интерес',
+                                              tooltip:
+                                                  useFirestoreForMeetings
+                                                      ? 'Пригласить'
+                                                      : 'В компанию',
                                               onPressed:
-                                                  () => _expressInterest(item),
+                                                  () => _inviteOrJoinDemo(item),
                                               icon: const Icon(
                                                 Icons.favorite_border,
                                               ),
                                             ),
-                                      ],
-                                    ),
                                   ),
                                 );
                               },
@@ -322,12 +350,10 @@ class _CandidateView {
     required this.score,
     required this.shared,
     required this.interested,
-    required this.mutual,
   });
 
   final UserProfile profile;
   final int score;
   final List<String> shared;
   final bool interested;
-  final bool mutual;
 }

@@ -4,6 +4,7 @@ import 'package:eventa/src/app/app.dart';
 import 'package:eventa/src/core/app_runtime_config.dart';
 import 'package:eventa/src/core/crash/crash_reporting.dart';
 import 'package:eventa/src/core/di/injection.dart';
+import 'package:eventa/src/core/meetings_backend_config.dart';
 import 'package:eventa/src/core/startup_demo_fallback_notice.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -77,6 +78,7 @@ Future<void> _bootstrap() async {
 
   if (!mobileNative) {
     appUsesFirebaseBackend = false;
+    useFirestoreForMeetings = false;
     await configureDependencies(environment: 'mock');
     return;
   }
@@ -84,6 +86,7 @@ Future<void> _bootstrap() async {
   try {
     await Firebase.initializeApp();
     appUsesFirebaseBackend = true;
+    useFirestoreForMeetings = true;
     try {
       await configureFirebaseCrashReporting();
     } catch (e, st) {
@@ -92,6 +95,7 @@ Future<void> _bootstrap() async {
     await configureDependencies(environment: Environment.dev);
   } catch (error, stackTrace) {
     appUsesFirebaseBackend = false;
+    useFirestoreForMeetings = false;
     await _reportStartupFailure(error, stackTrace);
     try {
       await getIt.reset(dispose: true);

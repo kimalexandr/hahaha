@@ -129,6 +129,11 @@ class _SignInPageState extends State<SignInPage> {
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: _openRegister,
+                  child: const Text('Нет аккаунта? Зарегистрироваться'),
+                ),
                 const SizedBox(height: 24),
                 Row(
                   children: [
@@ -204,14 +209,6 @@ class _SignInPageState extends State<SignInPage> {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: const Text('Войти'),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton(
-                    onPressed: _openRegister,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: const Text('Создать аккаунт'),
                   ),
                 ],
               ],

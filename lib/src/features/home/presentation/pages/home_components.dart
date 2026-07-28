@@ -2,7 +2,7 @@ import 'package:eventa/src/core/di/injection.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
 import 'package:eventa/src/features/chat/presentation/pages/event_chat_page.dart';
 import 'package:eventa/src/features/meetings/data/campaign_local_storage.dart';
-import 'package:eventa/src/features/meetings/data/meeting_local_storage.dart';
+import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
 import 'package:eventa/src/features/meetings/domain/entities/event_meetup_campaign.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
 import 'package:eventa/src/features/meetings/presentation/pages/campaign_detail_page.dart';
@@ -718,7 +718,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
   Future<void> _loadMeta() async {
     final uid = await getIt<AuthRepository>().currentUserId();
-    final count = await MeetingLocalStorage().countByLinkedEvent(
+    final count = await MeetingRepository().countByLinkedEvent(
       widget.event.id,
     );
     final campaign = await CampaignLocalStorage().activeForEvent(

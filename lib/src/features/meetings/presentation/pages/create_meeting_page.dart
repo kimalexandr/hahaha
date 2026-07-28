@@ -1,7 +1,7 @@
 import 'package:eventa/src/core/di/injection.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
 import 'package:eventa/src/features/home/domain/entities/event.dart';
-import 'package:eventa/src/features/meetings/data/meeting_local_storage.dart';
+import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
 import 'package:eventa/src/features/profile/data/profile_persistence.dart';
 import 'package:eventa/src/features/venues/domain/entities/venue.dart';
@@ -21,7 +21,7 @@ class CreateMeetingPage extends StatefulWidget {
 
 class _CreateMeetingPageState extends State<CreateMeetingPage> {
   final _topicController = TextEditingController();
-  final _storage = MeetingLocalStorage();
+  final _repo = MeetingRepository();
   MeetingFormat _format = MeetingFormat.coffee;
   MeetingPurpose _purpose = MeetingPurpose.talk;
   int _maxParticipants = 2;
@@ -101,7 +101,7 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
       final event = widget.linkedEvent;
       final venue = widget.venue;
 
-      final meeting = Meeting(
+      final draft = Meeting(
         id: 'meeting-${DateTime.now().millisecondsSinceEpoch}',
         venueId: venue?.id ?? event?.id ?? '',
         venueName: venue?.name ?? event?.place ?? event?.title ?? '',
@@ -117,11 +117,13 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
         linkedEventId: event?.id,
         linkedEventTitle: event?.title,
         maxParticipants: _maxParticipants,
+        currentParticipantCount: 1,
         participants: [uid],
         participantStatus: {uid: 'joined'},
         createdAt: DateTime.now(),
       );
-      await _storage.upsert(meeting);
+      final meeting = await _repo.create(draft);
+      await _repo.upsertLocalMirror(meeting);
       if (!mounted) return;
       Navigator.of(context).pop(meeting);
     } catch (_) {

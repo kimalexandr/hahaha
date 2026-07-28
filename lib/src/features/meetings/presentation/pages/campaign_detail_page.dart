@@ -1,5 +1,5 @@
 import 'package:eventa/src/features/meetings/data/campaign_local_storage.dart';
-import 'package:eventa/src/features/meetings/data/meeting_local_storage.dart';
+import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
 import 'package:eventa/src/features/meetings/domain/entities/event_meetup_campaign.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +24,7 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
   }
 
   Future<void> _load() async {
-    final all = await MeetingLocalStorage().readAll();
+    final all = await MeetingRepository().readAll();
     final linked =
         all
             .where(

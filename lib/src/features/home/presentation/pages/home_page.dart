@@ -4,9 +4,13 @@ import 'package:eventa/src/features/home/domain/entities/event.dart';
 import 'package:eventa/src/features/home/data/local/home_local_storage.dart';
 import 'package:eventa/src/features/home/data/remote/home_remote_storage.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
+import 'package:eventa/src/features/profile/data/profile_persistence.dart';
 import 'package:eventa/src/features/home/presentation/pages/home_components.dart';
 import 'package:eventa/src/core/app_runtime_config.dart';
+import 'package:eventa/src/core/di/injection.dart';
+import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
 import 'package:eventa/src/features/venues/presentation/pages/venues_page.dart';
+import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
 import 'package:eventa/src/features/meetings/presentation/pages/meetings_catalog_page.dart';
 import 'package:flutter/foundation.dart';
 
@@ -173,6 +177,25 @@ class _HomePageState extends State<HomePage> {
     } catch (_) {
       // Keep app usable offline; local data is already saved.
     }
+  }
+
+  Future<void> _syncAttendee(
+    Event event, {
+    required bool going,
+    required bool wasGoing,
+  }) async {
+    if (going == wasGoing) return;
+    try {
+      final uid =
+          await getIt<AuthRepository>().currentUserId() ?? _currentUserId;
+      final profile = await ProfilePersistence().read(uid) ?? _profile;
+      await MeetingRepository().setEventGoing(
+        eventId: event.id,
+        uid: uid,
+        interestsSnapshot: profile.interests,
+        going: going,
+      );
+    } catch (_) {}
   }
 
   void _onListScroll() {
@@ -531,11 +554,13 @@ class _HomePageState extends State<HomePage> {
             _persistState();
           },
           onGoing: () {
+            final wasGoing = event.isGoing;
             setState(() {
               event.isGoing = !event.isGoing;
               event.going += event.isGoing ? 1 : -1;
             });
             _persistState();
+            _syncAttendee(event, going: event.isGoing, wasGoing: wasGoing);
           },
           onBookmark: () {
             setState(() {

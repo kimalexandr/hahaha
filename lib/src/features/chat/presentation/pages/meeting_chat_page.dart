@@ -1,69 +1,73 @@
-import 'package:eventa/src/features/chat/data/chat_local_storage.dart';
+import 'dart:async';
+
 import 'package:eventa/src/features/chat/domain/entities/chat_message.dart';
+import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
 import 'package:flutter/material.dart';
 
 class MeetingChatPage extends StatefulWidget {
   const MeetingChatPage({
     super.key,
-    required this.chatId,
+    required this.meetingId,
     required this.myUserId,
-    required this.peerName,
+    required this.title,
   });
 
-  final String chatId;
+  final String meetingId;
   final String myUserId;
-  final String peerName;
+  final String title;
 
   @override
   State<MeetingChatPage> createState() => _MeetingChatPageState();
 }
 
 class _MeetingChatPageState extends State<MeetingChatPage> {
-  final _storage = ChatLocalStorage();
+  final _repo = MeetingRepository();
   final _controller = TextEditingController();
+  StreamSubscription<List<ChatMessage>>? _sub;
   List<ChatMessage> _messages = [];
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _sub = _repo.watchMeetingChat(widget.meetingId).listen((messages) {
+      if (!mounted) return;
+      setState(() {
+        _messages = messages;
+        _loading = false;
+      });
+    }, onError: (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    });
   }
 
   @override
   void dispose() {
+    _sub?.cancel();
     _controller.dispose();
     super.dispose();
-  }
-
-  Future<void> _load() async {
-    final messages = await _storage.readMessages(widget.chatId);
-    if (!mounted) return;
-    setState(() {
-      _messages = messages;
-      _loading = false;
-    });
   }
 
   Future<void> _send() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    final message = ChatMessage(
-      id: 'msg-${DateTime.now().millisecondsSinceEpoch}',
-      chatId: widget.chatId,
+    _controller.clear();
+    await _repo.sendMeetingChatMessage(
+      meetingId: widget.meetingId,
       senderId: widget.myUserId,
       text: text,
-      createdAt: DateTime.now(),
     );
-    await _storage.addMessage(message);
-    _controller.clear();
-    await _load();
+    // В Hive stream одноразовый — перезагружаем.
+    final latest = await _repo.watchMeetingChat(widget.meetingId).first;
+    if (!mounted) return;
+    setState(() => _messages = latest);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Чат с ${widget.peerName}')),
+      appBar: AppBar(title: Text(widget.title)),
       body: Column(
         children: [
           Expanded(

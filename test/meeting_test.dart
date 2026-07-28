@@ -62,4 +62,24 @@ void main() {
     expect(restored.topic, 'Просто поболтать');
     expect(restored.purpose, MeetingPurpose.talk);
   });
+
+  test('Meeting exposes creatorId and currentParticipantCount', () {
+    final meeting = Meeting(
+      id: 'm4',
+      venueId: 'v1',
+      venueName: 'Cafe',
+      city: 'Almaty',
+      hostUserId: 'u1',
+      hostName: 'Аня',
+      format: MeetingFormat.coffee,
+      scheduledAt: DateTime.utc(2026, 8, 1),
+      topic: 'Тема',
+      currentParticipantCount: 3,
+      maxParticipants: 6,
+      createdAt: DateTime.utc(2026, 7, 28),
+    );
+    expect(meeting.creatorId, 'u1');
+    expect(meeting.joinedCount, 3);
+    expect(meeting.toMap()['creatorId'], 'u1');
+  });
 }

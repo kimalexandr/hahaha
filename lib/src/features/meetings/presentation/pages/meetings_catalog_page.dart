@@ -1,10 +1,10 @@
-import 'package:eventa/src/features/meetings/data/meeting_local_storage.dart';
+import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
 import 'package:eventa/src/features/meetings/presentation/pages/meeting_candidates_page.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// Каталог локальных встреч с фильтром по цели (purpose).
+/// Каталог встреч с фильтром по цели (purpose).
 class MeetingsCatalogPage extends StatefulWidget {
   const MeetingsCatalogPage({super.key});
 
@@ -13,7 +13,7 @@ class MeetingsCatalogPage extends StatefulWidget {
 }
 
 class _MeetingsCatalogPageState extends State<MeetingsCatalogPage> {
-  final _storage = MeetingLocalStorage();
+  final _repo = MeetingRepository();
   List<Meeting> _meetings = [];
   MeetingPurpose? _purposeFilter;
   MeetingKind? _kindFilter;
@@ -26,7 +26,7 @@ class _MeetingsCatalogPageState extends State<MeetingsCatalogPage> {
   }
 
   Future<void> _load() async {
-    final all = await _storage.readAll();
+    final all = await _repo.readAll();
     if (!mounted) return;
     setState(() {
       _meetings = all;
