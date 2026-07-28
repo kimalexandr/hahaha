@@ -1,5 +1,4 @@
-// We can add a User entity later if needed.
-// For now, a stream of bool is enough to represent auth state.
+import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 
 abstract class AuthRepository {
   Stream<bool> get authStateChanges;
@@ -7,5 +6,10 @@ abstract class AuthRepository {
   Future<void> signInWithGoogle();
   Future<void> signOut();
   Future<bool> isNewUser();
-  Future<void> markProfileAsCreated();
+
+  /// UID текущего пользователя (или демо-id в mock).
+  Future<String?> currentUserId();
+
+  /// Сохраняет профиль и помечает онбординг завершённым.
+  Future<void> completeProfile(UserProfile profile);
 }

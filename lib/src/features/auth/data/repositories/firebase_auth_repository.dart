@@ -1,17 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eventa/src/features/auth/data/google_sign_in_helper.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
+import 'package:eventa/src/features/profile/data/profile_persistence.dart';
+import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:injectable/injectable.dart';
 
 @LazySingleton(as: AuthRepository, env: [Environment.dev])
 class FirebaseAuthRepository implements AuthRepository {
-  FirebaseAuthRepository() : _googleSignIn = createGoogleSignIn();
+  FirebaseAuthRepository()
+    : _googleSignIn = createGoogleSignIn(),
+      _persistence = ProfilePersistence();
 
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn;
+  final ProfilePersistence _persistence;
 
   @override
   Stream<bool> get authStateChanges =>
@@ -68,14 +73,39 @@ class FirebaseAuthRepository implements AuthRepository {
     final profileDoc =
         await _firestore.collection('profiles').doc(user.uid).get();
     if (!profileDoc.exists) return true;
-    return !(profileDoc.data()?['profileCreated'] as bool? ?? false);
+    final data = profileDoc.data();
+    if (data == null) return true;
+    if (data['profileCreated'] == true) return false;
+    final interests = data['interests'];
+    return !(interests is List && interests.isNotEmpty);
   }
 
   @override
-  Future<void> markProfileAsCreated() async {
+  Future<String?> currentUserId() async => _firebaseAuth.currentUser?.uid;
+
+  @override
+  Future<void> completeProfile(UserProfile profile) async {
     final user = _firebaseAuth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'no-current-user',
+        message: 'Нет авторизованного пользователя.',
+      );
+    }
+    final toSave = UserProfile(
+      id: profile.id.isEmpty ? user.uid : profile.id,
+      createdAt: profile.createdAt,
+      ownerId: user.uid,
+      name: profile.name,
+      bio: profile.bio,
+      role: profile.role,
+      city: profile.city,
+      interests: profile.interests,
+      readyForMeeting: profile.readyForMeeting,
+    );
+    await _persistence.save(toSave);
     await _firestore.collection('profiles').doc(user.uid).set({
+      ...toSave.toMap(),
       'profileCreated': true,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));

@@ -1,5 +1,6 @@
 import 'package:eventa/src/features/home/domain/entities/event.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
+import 'package:eventa/src/features/profile/domain/profile_interest_catalog.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -178,20 +179,27 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   late final TextEditingController _nameController;
   late final TextEditingController _bioController;
+  late final TextEditingController _cityController;
   String _role = 'user';
+  late Set<String> _selectedInterests;
+  bool _readyForMeeting = false;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.initialProfile.name);
     _bioController = TextEditingController(text: widget.initialProfile.bio);
+    _cityController = TextEditingController(text: widget.initialProfile.city);
     _role = widget.initialProfile.role;
+    _selectedInterests = {...widget.initialProfile.interests};
+    _readyForMeeting = widget.initialProfile.readyForMeeting;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _bioController.dispose();
+    _cityController.dispose();
     super.dispose();
   }
 
@@ -207,6 +215,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 ? 'Без описания'
                 : _bioController.text.trim(),
         role: _role,
+        city: _cityController.text.trim(),
+        interests: _selectedInterests.toList()..sort(),
+        readyForMeeting: _readyForMeeting,
       ),
     );
   }
@@ -215,49 +226,83 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Профиль')),
-      body: Padding(
+      body: ListView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Имя'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _bioController,
-              decoration: const InputDecoration(labelText: 'О себе'),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 12),
-            // ignore: deprecated_member_use — value устарел в новых SDK; initialValue недоступен на старых Flutter.
-            DropdownButtonFormField<String>(
-              value: _role,
-              decoration: const InputDecoration(labelText: 'Роль'),
-              items: const [
-                DropdownMenuItem(value: 'user', child: Text('Пользователь')),
-                DropdownMenuItem(
-                  value: 'organizer',
-                  child: Text('Организатор'),
-                ),
-              ],
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() {
-                  _role = value;
-                });
-              },
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _saveProfile,
-                child: const Text('Сохранить профиль'),
+        children: [
+          TextField(
+            controller: _nameController,
+            decoration: const InputDecoration(labelText: 'Имя'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _cityController,
+            decoration: const InputDecoration(labelText: 'Город'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _bioController,
+            decoration: const InputDecoration(labelText: 'О себе'),
+            maxLines: 3,
+          ),
+          const SizedBox(height: 12),
+          // ignore: deprecated_member_use — value устарел в новых SDK; initialValue недоступен на старых Flutter.
+          DropdownButtonFormField<String>(
+            value: _role,
+            decoration: const InputDecoration(labelText: 'Роль'),
+            items: const [
+              DropdownMenuItem(value: 'user', child: Text('Пользователь')),
+              DropdownMenuItem(
+                value: 'organizer',
+                child: Text('Организатор'),
               ),
+            ],
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() {
+                _role = value;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+          Text('Интересы', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children:
+                ProfileInterestCatalog.all.map((interest) {
+                  final selected = _selectedInterests.contains(interest);
+                  return FilterChip(
+                    label: Text(interest),
+                    selected: selected,
+                    onSelected: (value) {
+                      setState(() {
+                        if (value) {
+                          _selectedInterests.add(interest);
+                        } else {
+                          _selectedInterests.remove(interest);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Готов к встречам'),
+            value: _readyForMeeting,
+            onChanged: (value) => setState(() => _readyForMeeting = value),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _saveProfile,
+              child: const Text('Сохранить профиль'),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

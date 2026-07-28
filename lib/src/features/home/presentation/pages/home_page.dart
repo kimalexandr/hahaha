@@ -6,6 +6,7 @@ import 'package:eventa/src/features/home/data/remote/home_remote_storage.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 import 'package:eventa/src/features/home/presentation/pages/home_components.dart';
 import 'package:eventa/src/core/app_runtime_config.dart';
+import 'package:eventa/src/features/venues/presentation/pages/venues_page.dart';
 import 'package:flutter/foundation.dart';
 
 class HomePage extends StatefulWidget {
@@ -596,6 +597,21 @@ class _HomePageState extends State<HomePage> {
         elevation: 0.5,
         centerTitle: true,
         actions: [
+          IconButton(
+            tooltip: 'Заведения',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder:
+                      (_) => VenuesPage(
+                        initialCity:
+                            _profile.city.isEmpty ? null : _profile.city,
+                      ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.storefront_outlined),
+          ),
           IconButton(
             onPressed: _openNotifications,
             icon: const Icon(Icons.notifications_outlined),
