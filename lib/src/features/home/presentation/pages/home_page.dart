@@ -7,6 +7,7 @@ import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 import 'package:eventa/src/features/home/presentation/pages/home_components.dart';
 import 'package:eventa/src/core/app_runtime_config.dart';
 import 'package:eventa/src/features/venues/presentation/pages/venues_page.dart';
+import 'package:eventa/src/features/meetings/presentation/pages/meetings_catalog_page.dart';
 import 'package:flutter/foundation.dart';
 
 class HomePage extends StatefulWidget {
@@ -597,6 +598,15 @@ class _HomePageState extends State<HomePage> {
         elevation: 0.5,
         centerTitle: true,
         actions: [
+          IconButton(
+            tooltip: 'Встречи',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MeetingsCatalogPage()),
+              );
+            },
+            icon: const Icon(Icons.groups_outlined),
+          ),
           IconButton(
             tooltip: 'Заведения',
             onPressed: () {

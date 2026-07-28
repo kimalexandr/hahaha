@@ -5,6 +5,7 @@ import 'package:eventa/src/features/auth/presentation/bloc/auth_event.dart';
 import 'package:eventa/src/features/home/presentation/pages/home_page.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 import 'package:eventa/src/features/profile/domain/profile_interest_catalog.dart';
+import 'package:eventa/src/features/profile/presentation/pages/phone_verify_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -60,9 +61,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (!mounted) return;
 
       context.read<AuthBloc>().add(AuthCheckRequested());
-      Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
+      await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => const PhoneVerifyPage()),
+      );
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

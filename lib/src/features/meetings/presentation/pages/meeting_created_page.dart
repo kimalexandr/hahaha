@@ -1,3 +1,4 @@
+import 'package:eventa/src/features/home/domain/entities/event.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
 import 'package:eventa/src/features/meetings/presentation/pages/meeting_candidates_page.dart';
 import 'package:eventa/src/features/venues/domain/entities/venue.dart';
@@ -8,11 +9,13 @@ class MeetingCreatedPage extends StatelessWidget {
   const MeetingCreatedPage({
     super.key,
     required this.meeting,
-    required this.venue,
+    this.venue,
+    this.event,
   });
 
   final Meeting meeting;
-  final Venue venue;
+  final Venue? venue;
+  final Event? event;
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +23,12 @@ class MeetingCreatedPage extends StatelessWidget {
       'd MMM yyyy, HH:mm',
       'ru',
     ).format(meeting.scheduledAt);
+    final title =
+        event?.title ??
+        venue?.name ??
+        meeting.linkedEventTitle ??
+        meeting.venueName;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Встреча создана')),
       body: Padding(
@@ -27,15 +36,20 @@ class MeetingCreatedPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(venue.name, style: Theme.of(context).textTheme.headlineSmall),
+            Text(title, style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
+            Text(
+              meeting.topic.isEmpty ? 'Без темы' : meeting.topic,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Text('Тип: ${meeting.meetingKind.labelRu}'),
+            Text('Цель: ${meeting.purpose.labelRu}'),
             Text('Формат: ${meeting.format.labelRu}'),
+            Text(
+              'Компания: ${meeting.joinedCount}/${meeting.maxParticipants}',
+            ),
             Text('Когда: $when'),
             Text('Организатор: ${meeting.hostName}'),
-            if (meeting.note.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text('Комментарий: ${meeting.note}'),
-            ],
             const Spacer(),
             ElevatedButton.icon(
               onPressed: () {

@@ -1,10 +1,21 @@
-import 'package:eventa/src/features/home/domain/entities/event.dart';
-import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
-import 'package:eventa/src/features/profile/domain/profile_interest_catalog.dart';
+import 'package:eventa/src/core/di/injection.dart';
+import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
+import 'package:eventa/src/features/chat/presentation/pages/event_chat_page.dart';
+import 'package:eventa/src/features/meetings/data/campaign_local_storage.dart';
+import 'package:eventa/src/features/meetings/data/meeting_local_storage.dart';
+import 'package:eventa/src/features/meetings/domain/entities/event_meetup_campaign.dart';
+import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
+import 'package:eventa/src/features/meetings/presentation/pages/campaign_detail_page.dart';
+import 'package:eventa/src/features/meetings/presentation/pages/create_meeting_page.dart';
+import 'package:eventa/src/features/meetings/presentation/pages/meeting_created_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:eventa/src/features/home/domain/entities/event.dart';
+import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
+import 'package:eventa/src/features/profile/domain/profile_interest_catalog.dart';
+import 'package:eventa/src/features/profile/presentation/pages/phone_verify_page.dart';
 
 class EventCard extends StatelessWidget {
   final Event event;
@@ -222,10 +233,47 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Future<void> _openPhoneVerify() async {
+    final verified = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const PhoneVerifyPage(allowSkip: false),
+      ),
+    );
+    if (verified == true && mounted) {
+      Navigator.of(context).pop(
+        widget.initialProfile.copyWith(
+          name: _nameController.text.trim(),
+          bio: _bioController.text.trim(),
+          role: _role,
+          city: _cityController.text.trim(),
+          interests: _selectedInterests.toList()..sort(),
+          readyForMeeting: _readyForMeeting,
+          phoneVerified: true,
+          phoneVerifiedAt: DateTime.now(),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Профиль')),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            const Text('Профиль'),
+            if (widget.initialProfile.phoneVerified) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.verified, color: Colors.green, size: 20),
+              const SizedBox(width: 4),
+              Text(
+                'Подтверждён',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ],
+          ],
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -291,6 +339,15 @@ class _ProfilePageState extends State<ProfilePage> {
             value: _readyForMeeting,
             onChanged: (value) => setState(() => _readyForMeeting = value),
           ),
+          if (!widget.initialProfile.phoneVerified)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.phone_iphone),
+              title: const Text('Подтвердить телефон'),
+              subtitle: const Text('Бейдж доверия в подборе компании'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _openPhoneVerify,
+            ),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
@@ -633,7 +690,7 @@ class OrganizerProfilePage extends StatelessWidget {
   }
 }
 
-class EventDetailsPage extends StatelessWidget {
+class EventDetailsPage extends StatefulWidget {
   final Event event;
   final VoidCallback onOpenComments;
   final VoidCallback onOpenOrganizer;
@@ -643,8 +700,119 @@ class EventDetailsPage extends StatelessWidget {
     required this.onOpenComments,
     required this.onOpenOrganizer,
   });
+
+  @override
+  State<EventDetailsPage> createState() => _EventDetailsPageState();
+}
+
+class _EventDetailsPageState extends State<EventDetailsPage> {
+  int _companySeekers = 0;
+  EventMeetupCampaign? _campaign;
+  bool _isEventOwner = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMeta();
+  }
+
+  Future<void> _loadMeta() async {
+    final uid = await getIt<AuthRepository>().currentUserId();
+    final count = await MeetingLocalStorage().countByLinkedEvent(
+      widget.event.id,
+    );
+    final campaign = await CampaignLocalStorage().activeForEvent(
+      widget.event.id,
+    );
+    if (!mounted) return;
+    setState(() {
+      _companySeekers = count;
+      _campaign = campaign;
+      _isEventOwner = uid != null && uid == widget.event.ownerId;
+    });
+  }
+
+  Future<void> _findCompany() async {
+    final meeting = await Navigator.of(context).push<Meeting>(
+      MaterialPageRoute(
+        builder: (_) => CreateMeetingPage(linkedEvent: widget.event),
+      ),
+    );
+    if (meeting == null || !mounted) return;
+
+    final campaign = _campaign;
+    if (campaign != null && campaign.isActive) {
+      final updated = campaign.copyWith(
+        linkedMeetingIds: [...campaign.linkedMeetingIds, meeting.id],
+      );
+      await CampaignLocalStorage().upsert(updated);
+    }
+    if (!mounted) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (_) => MeetingCreatedPage(meeting: meeting, event: widget.event),
+      ),
+    );
+    if (!mounted) return;
+    await _loadMeta();
+  }
+
+  Future<void> _startCampaign() async {
+    final uid = await getIt<AuthRepository>().currentUserId() ?? 'user-1';
+    final campaign = EventMeetupCampaign(
+      id: 'camp-${DateTime.now().millisecondsSinceEpoch}',
+      eventId: widget.event.id,
+      eventTitle: widget.event.title,
+      organizerId: uid,
+      title: 'Собираем компанию на ${widget.event.title}',
+      createdAt: DateTime.now(),
+      targetGroupSize: 4,
+    );
+    await CampaignLocalStorage().upsert(campaign);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Кампания сбора компании запущена')),
+    );
+    await _loadMeta();
+  }
+
+  void _openCampaign() {
+    final campaign = _campaign;
+    if (campaign == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CampaignDetailPage(campaign: campaign),
+      ),
+    );
+  }
+
+  void _openEventChat() {
+    if (!widget.event.isGoing && _companySeekers == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Отметьте «Иду» или создайте встречу, чтобы открыть чат участников',
+          ),
+        ),
+      );
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (_) => EventChatPage(
+              eventId: widget.event.id,
+              eventTitle: widget.event.title,
+            ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final event = widget.event;
     return Scaffold(
       appBar: AppBar(title: Text(event.title)),
       body: ListView(
@@ -678,14 +846,59 @@ class EventDetailsPage extends StatelessWidget {
           const SizedBox(height: 16),
           Text(event.description, style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 20),
+          if (_campaign != null && _campaign!.isActive)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.secondaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text('Организатор собирает компанию'),
+            ),
+          Text(
+            _companySeekers == 0
+                ? 'Пока никто не ищет компанию на это событие'
+                : '$_companySeekers человек ищут компанию',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton.icon(
+            onPressed: _findCompany,
+            icon: const Icon(Icons.people_outline),
+            label: const Text('Найти компанию на это событие'),
+          ),
+          if (_isEventOwner) ...[
+            const SizedBox(height: 8),
+            if (_campaign == null || !_campaign!.isActive)
+              OutlinedButton.icon(
+                onPressed: _startCampaign,
+                icon: const Icon(Icons.campaign_outlined),
+                label: const Text('Запустить сбор компании'),
+              )
+            else
+              OutlinedButton.icon(
+                onPressed: _openCampaign,
+                icon: const Icon(Icons.insights_outlined),
+                label: const Text('Статистика кампании'),
+              ),
+          ],
+          const SizedBox(height: 8),
           OutlinedButton.icon(
-            onPressed: onOpenOrganizer,
+            onPressed: _openEventChat,
+            icon: const Icon(Icons.forum_outlined),
+            label: const Text('Чат участников'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: widget.onOpenOrganizer,
             icon: const Icon(Icons.person_outline),
             label: Text('Организатор: ${event.organizerName}'),
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
-            onPressed: onOpenComments,
+            onPressed: widget.onOpenComments,
             icon: const Icon(Icons.comment_outlined),
             label: Text('Комментарии (${event.comments})'),
           ),

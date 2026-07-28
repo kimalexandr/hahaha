@@ -38,4 +38,9 @@ class MeetingLocalStorage {
     final all = await readAll();
     return all.where((m) => m.venueId == venueId).toList();
   }
+
+  Future<int> countByLinkedEvent(String eventId) async {
+    final all = await readAll();
+    return all.where((m) => m.linkedEventId == eventId).length;
+  }
 }

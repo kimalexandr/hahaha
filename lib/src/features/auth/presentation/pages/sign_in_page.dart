@@ -1,6 +1,7 @@
 import 'package:eventa/src/core/di/injection.dart';
 import 'package:eventa/src/features/auth/data/google_sign_in_helper.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
+import 'package:eventa/src/features/auth/presentation/pages/register_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -16,6 +17,7 @@ class _SignInPageState extends State<SignInPage> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -40,8 +42,23 @@ class _SignInPageState extends State<SignInPage> {
   }
 
   String _signInErrorMessage(Object error) {
-    if (error is FirebaseAuthException && error.message != null) {
-      return error.message!;
+    if (error is FirebaseAuthException) {
+      switch (error.code) {
+        case 'user-not-found':
+        case 'wrong-password':
+        case 'invalid-credential':
+          return 'Неверный email или пароль.';
+        case 'invalid-email':
+          return 'Некорректный email.';
+        case 'user-disabled':
+          return 'Аккаунт отключён.';
+        case 'too-many-requests':
+          return 'Слишком много попыток. Подождите немного.';
+        case 'network-request-failed':
+          return 'Нет сети. Проверьте подключение.';
+        default:
+          if (error.message != null) return error.message!;
+      }
     }
     return googleSignInUserMessage(error);
   }
@@ -53,7 +70,6 @@ class _SignInPageState extends State<SignInPage> {
 
     try {
       await signInMethod();
-      // Navigation will be handled by the AuthBloc listener in App widget
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -73,6 +89,12 @@ class _SignInPageState extends State<SignInPage> {
     }
   }
 
+  void _openRegister() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const RegisterPage()));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,13 +112,19 @@ class _SignInPageState extends State<SignInPage> {
                   style: Theme.of(context).textTheme.headlineLarge,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 8),
+                Text(
+                  'Вход в аккаунт',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 40),
                 ElevatedButton.icon(
                   onPressed: _signInWithGoogle,
-                  icon: const Icon(
-                    Icons.g_mobiledata,
-                  ), // Placeholder for Google Icon
-                  label: const Text('Sign in with Google'),
+                  icon: const Icon(Icons.g_mobiledata),
+                  label: const Text('Войти через Google'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
@@ -108,7 +136,7 @@ class _SignInPageState extends State<SignInPage> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8.0),
                       child: Text(
-                        'OR',
+                        'или email',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
@@ -127,9 +155,10 @@ class _SignInPageState extends State<SignInPage> {
                           border: OutlineInputBorder(),
                         ),
                         keyboardType: TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.email],
                         validator: (value) {
                           if (value == null || !value.contains('@')) {
-                            return 'Please enter a valid email';
+                            return 'Введите корректный email';
                           }
                           return null;
                         },
@@ -137,14 +166,27 @@ class _SignInPageState extends State<SignInPage> {
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _passwordController,
-                        decoration: const InputDecoration(
-                          labelText: 'Password',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: 'Пароль',
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                            onPressed: () {
+                              setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              );
+                            },
+                          ),
                         ),
-                        obscureText: true,
+                        obscureText: _obscurePassword,
+                        autofillHints: const [AutofillHints.password],
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
+                            return 'Введите пароль';
                           }
                           return null;
                         },
@@ -155,14 +197,23 @@ class _SignInPageState extends State<SignInPage> {
                 const SizedBox(height: 24),
                 if (_isLoading)
                   const Center(child: CircularProgressIndicator())
-                else
+                else ...[
                   ElevatedButton(
                     onPressed: _signInWithEmail,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text('Sign in with Email'),
+                    child: const Text('Войти'),
                   ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: _openRegister,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text('Создать аккаунт'),
+                  ),
+                ],
               ],
             ),
           ),

@@ -18,6 +18,8 @@ class DemoCandidateCatalog {
         city: 'Almaty',
         interests: const ['Кофе', 'Прогулки', 'Кино'],
         readyForMeeting: true,
+        phoneVerified: true,
+        phoneVerifiedAt: now,
       ),
       UserProfile(
         id: 'cand-2',
@@ -29,6 +31,8 @@ class DemoCandidateCatalog {
         city: 'Almaty',
         interests: const ['Спорт', 'Еда', 'Музыка'],
         readyForMeeting: true,
+        phoneVerified: true,
+        phoneVerifiedAt: now,
       ),
       UserProfile(
         id: 'cand-3',
@@ -40,6 +44,7 @@ class DemoCandidateCatalog {
         city: 'Almaty',
         interests: const ['Книги', 'Искусство', 'Кофе'],
         readyForMeeting: true,
+        phoneVerified: false,
       ),
       UserProfile(
         id: 'cand-4',
@@ -51,6 +56,8 @@ class DemoCandidateCatalog {
         city: 'Astana',
         interests: const ['Технологии', 'Игры', 'Кофе'],
         readyForMeeting: true,
+        phoneVerified: true,
+        phoneVerifiedAt: now,
       ),
       UserProfile(
         id: 'cand-5',
@@ -62,6 +69,8 @@ class DemoCandidateCatalog {
         city: 'Astana',
         interests: ProfileInterestCatalog.all.take(4).toList(),
         readyForMeeting: true,
+        phoneVerified: true,
+        phoneVerifiedAt: now,
       ),
     ];
     return all.where((p) => p.ownerId != excludeOwnerId).toList();

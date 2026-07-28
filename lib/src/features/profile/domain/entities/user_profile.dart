@@ -8,6 +8,8 @@ class UserProfile {
   final String city;
   final List<String> interests;
   final bool readyForMeeting;
+  final bool phoneVerified;
+  final DateTime? phoneVerifiedAt;
 
   const UserProfile({
     required this.id,
@@ -19,6 +21,8 @@ class UserProfile {
     this.city = '',
     this.interests = const [],
     this.readyForMeeting = false,
+    this.phoneVerified = false,
+    this.phoneVerifiedAt,
   });
 
   UserProfile copyWith({
@@ -28,6 +32,9 @@ class UserProfile {
     String? city,
     List<String>? interests,
     bool? readyForMeeting,
+    bool? phoneVerified,
+    DateTime? phoneVerifiedAt,
+    bool clearPhoneVerifiedAt = false,
   }) {
     return UserProfile(
       id: id,
@@ -39,6 +46,11 @@ class UserProfile {
       city: city ?? this.city,
       interests: interests ?? this.interests,
       readyForMeeting: readyForMeeting ?? this.readyForMeeting,
+      phoneVerified: phoneVerified ?? this.phoneVerified,
+      phoneVerifiedAt:
+          clearPhoneVerifiedAt
+              ? null
+              : (phoneVerifiedAt ?? this.phoneVerifiedAt),
     );
   }
 
@@ -53,11 +65,14 @@ class UserProfile {
       'city': city,
       'interests': interests,
       'readyForMeeting': readyForMeeting,
+      'phoneVerified': phoneVerified,
+      'phoneVerifiedAt': phoneVerifiedAt?.toIso8601String(),
     };
   }
 
   factory UserProfile.fromMap(Map<dynamic, dynamic> map) {
     final rawInterests = map['interests'];
+    final verifiedAt = map['phoneVerifiedAt'];
     return UserProfile(
       id: map['id'] as String? ?? '',
       createdAt: DateTime.parse(
@@ -73,6 +88,11 @@ class UserProfile {
               ? rawInterests.map((e) => e.toString()).toList()
               : const [],
       readyForMeeting: map['readyForMeeting'] as bool? ?? false,
+      phoneVerified: map['phoneVerified'] as bool? ?? false,
+      phoneVerifiedAt:
+          verifiedAt is String && verifiedAt.isNotEmpty
+              ? DateTime.tryParse(verifiedAt)
+              : null,
     );
   }
 }

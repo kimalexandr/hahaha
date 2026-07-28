@@ -21,5 +21,22 @@ void main() {
     expect(restored.city, 'Алматы');
     expect(restored.interests, ['Кофе', 'Кино']);
     expect(restored.readyForMeeting, isTrue);
+    expect(restored.phoneVerified, isFalse);
+  });
+
+  test('UserProfile phone verification fields', () {
+    final profile = UserProfile(
+      id: 'u1',
+      createdAt: DateTime.utc(2026, 1, 1),
+      ownerId: 'u1',
+      name: 'Аня',
+      bio: '',
+      role: 'user',
+      phoneVerified: true,
+      phoneVerifiedAt: DateTime.utc(2026, 7, 28),
+    );
+    final restored = UserProfile.fromMap(profile.toMap());
+    expect(restored.phoneVerified, isTrue);
+    expect(restored.phoneVerifiedAt, DateTime.utc(2026, 7, 28));
   });
 }

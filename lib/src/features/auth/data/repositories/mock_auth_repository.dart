@@ -14,6 +14,9 @@ class MockAuthRepository implements AuthRepository {
 
   final ProfilePersistence _persistence;
   final _authStateController = BehaviorSubject<bool>.seeded(false);
+  final Map<String, String> _registeredAccounts = {
+    'demo@eventa.app': 'password',
+  };
   bool _profileCreated = false;
 
   @override
@@ -22,13 +25,40 @@ class MockAuthRepository implements AuthRepository {
   @override
   Future<void> signInWithEmailAndPassword(String email, String password) async {
     await Future.delayed(const Duration(seconds: 1));
-
+    final key = email.trim().toLowerCase();
+    final stored = _registeredAccounts[key];
+    if (stored != null && stored == password) {
+      _authStateController.add(true);
+      return;
+    }
+    // Обратная совместимость демо: любой email + password
     if (password == 'password') {
       _authStateController.add(true);
-    } else {
-      _authStateController.add(false);
-      throw Exception('Wrong password');
+      return;
     }
+    _authStateController.add(false);
+    throw Exception('Неверный email или пароль');
+  }
+
+  @override
+  Future<void> registerWithEmailAndPassword(
+    String email,
+    String password,
+  ) async {
+    await Future.delayed(const Duration(milliseconds: 600));
+    final key = email.trim().toLowerCase();
+    if (key.isEmpty || !key.contains('@')) {
+      throw Exception('Введите корректный email');
+    }
+    if (password.length < 6) {
+      throw Exception('Пароль должен быть не короче 6 символов');
+    }
+    if (_registeredAccounts.containsKey(key)) {
+      throw Exception('Аккаунт с таким email уже существует');
+    }
+    _registeredAccounts[key] = password;
+    _profileCreated = false;
+    _authStateController.add(true);
   }
 
   @override

@@ -30,6 +30,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Eventa'), findsOneWidget);
-    expect(find.text('Sign in with Google'), findsOneWidget);
+    expect(find.text('Войти через Google'), findsOneWidget);
+    expect(find.text('Создать аккаунт'), findsOneWidget);
   });
 }
