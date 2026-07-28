@@ -37,17 +37,16 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
     final uid = await getIt<AuthRepository>().currentUserId() ?? 'user-1';
     final existing = await _persistence.read(uid);
     final now = DateTime.now();
-    final profile =
-        (existing ??
-                UserProfile(
-                  id: uid,
-                  createdAt: now,
-                  ownerId: uid,
-                  name: 'Пользователь',
-                  bio: '',
-                  role: 'user',
-                ))
-            .copyWith(phoneVerified: true, phoneVerifiedAt: now);
+    final profile = (existing ??
+            UserProfile(
+              id: uid,
+              createdAt: now,
+              ownerId: uid,
+              name: 'Пользователь',
+              bio: '',
+              role: 'user',
+            ))
+        .copyWith(phoneVerified: true, phoneVerifiedAt: now);
     await _persistence.save(profile);
   }
 
@@ -200,7 +199,10 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
           ],
           if (_error != null) ...[
             const SizedBox(height: 12),
-            Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            Text(
+              _error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
           ],
           const SizedBox(height: 24),
           if (_busy)

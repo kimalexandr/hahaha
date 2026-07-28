@@ -51,15 +51,17 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
           readyForMeeting: true,
         );
 
-    final people = DemoCandidateCatalog.all(excludeOwnerId: uid)
-        .where(
-          (p) =>
-              p.readyForMeeting &&
-              (p.city.isEmpty ||
-                  p.city.toLowerCase() == widget.meeting.city.toLowerCase()) &&
-              (!_verifiedOnly || p.phoneVerified),
-        )
-        .toList();
+    final people =
+        DemoCandidateCatalog.all(excludeOwnerId: uid)
+            .where(
+              (p) =>
+                  p.readyForMeeting &&
+                  (p.city.isEmpty ||
+                      p.city.toLowerCase() ==
+                          widget.meeting.city.toLowerCase()) &&
+                  (!_verifiedOnly || p.phoneVerified),
+            )
+            .toList();
 
     final views = <_CandidateView>[];
     for (final person in people) {
@@ -123,8 +125,8 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
       return;
     }
 
-    final participants = {...meeting.participants, uid, candidate.profile.ownerId}
-        .toList();
+    final participants =
+        {...meeting.participants, uid, candidate.profile.ownerId}.toList();
     final statuses = Map<String, String>.from(meeting.participantStatus);
     statuses[uid] = 'joined';
     statuses[candidate.profile.ownerId] = 'joined';
@@ -132,9 +134,7 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
       participants: participants,
       participantStatus: statuses,
       status:
-          participants
-                      .where((id) => statuses[id] == 'joined')
-                      .length >=
+          participants.where((id) => statuses[id] == 'joined').length >=
                   meeting.maxParticipants
               ? MeetingStatus.matched
               : MeetingStatus.open,
@@ -169,7 +169,8 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
           builder:
               (_) => EventChatPage(
                 eventId: meeting.id,
-                eventTitle: meeting.topic.isEmpty ? meeting.venueName : meeting.topic,
+                eventTitle:
+                    meeting.topic.isEmpty ? meeting.venueName : meeting.topic,
               ),
         ),
       );

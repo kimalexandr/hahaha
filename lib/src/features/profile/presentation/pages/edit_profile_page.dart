@@ -61,13 +61,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (!mounted) return;
 
       context.read<AuthBloc>().add(AuthCheckRequested());
-      await Navigator.of(context).push<bool>(
-        MaterialPageRoute(builder: (_) => const PhoneVerifyPage()),
-      );
+      await Navigator.of(
+        context,
+      ).push<bool>(MaterialPageRoute(builder: (_) => const PhoneVerifyPage()));
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

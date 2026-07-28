@@ -45,9 +45,7 @@ class MeetingCreatedPage extends StatelessWidget {
             Text('Тип: ${meeting.meetingKind.labelRu}'),
             Text('Цель: ${meeting.purpose.labelRu}'),
             Text('Формат: ${meeting.format.labelRu}'),
-            Text(
-              'Компания: ${meeting.joinedCount}/${meeting.maxParticipants}',
-            ),
+            Text('Компания: ${meeting.joinedCount}/${meeting.maxParticipants}'),
             Text('Когда: $when'),
             Text('Организатор: ${meeting.hostName}'),
             const Spacer(),

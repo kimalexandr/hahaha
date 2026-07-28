@@ -782,9 +782,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     final campaign = _campaign;
     if (campaign == null) return;
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => CampaignDetailPage(campaign: campaign),
-      ),
+      MaterialPageRoute(builder: (_) => CampaignDetailPage(campaign: campaign)),
     );
   }
 

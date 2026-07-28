@@ -227,7 +227,10 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
                         : null,
                 icon: const Icon(Icons.remove_circle_outline),
               ),
-              Text('$_maxParticipants', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                '$_maxParticipants',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               IconButton(
                 onPressed:
                     _maxParticipants < 6

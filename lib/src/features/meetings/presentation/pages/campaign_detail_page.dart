@@ -71,7 +71,10 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
                   Text('Встреч создано: ${_meetings.length}'),
                   Text('Участников в компаниях: $participants'),
                   const SizedBox(height: 16),
-                  Text('Встречи', style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    'Встречи',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 8),
                   if (_meetings.isEmpty)
                     const Text('Пока нет встреч по этой кампании')

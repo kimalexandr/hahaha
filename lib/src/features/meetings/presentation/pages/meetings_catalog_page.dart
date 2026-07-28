@@ -36,8 +36,7 @@ class _MeetingsCatalogPageState extends State<MeetingsCatalogPage> {
 
   List<Meeting> get _filtered {
     return _meetings.where((m) {
-      final purposeOk =
-          _purposeFilter == null || m.purpose == _purposeFilter;
+      final purposeOk = _purposeFilter == null || m.purpose == _purposeFilter;
       final kindOk = _kindFilter == null || m.meetingKind == _kindFilter;
       return purposeOk && kindOk;
     }).toList();
