@@ -68,8 +68,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     setState(() {
       _updatingField = field;
       _settings = NotificationSettings(
-        meetingChat:
-            field == 'meetingChat' ? value : _settings.meetingChat,
+        meetingChat: field == 'meetingChat' ? value : _settings.meetingChat,
         meetingJoined:
             field == 'meetingJoined' ? value : _settings.meetingJoined,
         eventChatDigest:
@@ -130,7 +129,9 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
                     ),
                   SwitchListTile(
                     title: const Text('Сообщения в чате встречи'),
-                    subtitle: const Text('Пуш при новом сообщении в чате компании'),
+                    subtitle: const Text(
+                      'Пуш при новом сообщении в чате компании',
+                    ),
                     value: _settings.meetingChat,
                     onChanged:
                         _updatingField == 'meetingChat'

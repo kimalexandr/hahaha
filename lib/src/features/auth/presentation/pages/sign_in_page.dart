@@ -101,9 +101,8 @@ class _SignInPageState extends State<SignInPage> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder:
-            (_) => ForgotPasswordPage(
-              initialEmail: _emailController.text.trim(),
-            ),
+            (_) =>
+                ForgotPasswordPage(initialEmail: _emailController.text.trim()),
       ),
     );
   }
