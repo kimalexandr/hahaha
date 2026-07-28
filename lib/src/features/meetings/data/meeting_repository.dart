@@ -29,11 +29,9 @@ class MeetingRepository {
   final ChatLocalStorage _chatLocal;
   final EventChatLocalStorage _eventChatLocal;
 
-  bool get _remoteEnabled =>
-      useFirestoreForMeetings && appUsesFirebaseBackend;
+  bool get _remoteEnabled => useFirestoreForMeetings && appUsesFirebaseBackend;
 
-  MeetingRemoteStorage get _remote =>
-      _remoteOrNull ??= MeetingRemoteStorage();
+  MeetingRemoteStorage get _remote => _remoteOrNull ??= MeetingRemoteStorage();
 
   EventAttendeeRemoteStorage get _attendees =>
       _attendeesOrNull ??= EventAttendeeRemoteStorage();

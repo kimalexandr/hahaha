@@ -139,14 +139,14 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
       await _openChat();
     } on MeetingFullException {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Место уже заняли')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Место уже заняли')));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось вступить')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Не удалось вступить')));
     } finally {
       if (mounted) setState(() => _joining = false);
       await _load();
@@ -180,9 +180,7 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Приглашение отправлено: ${candidate.profile.name}',
-            ),
+            content: Text('Приглашение отправлено: ${candidate.profile.name}'),
           ),
         );
       } else {
@@ -207,9 +205,9 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
       }
     } on MeetingFullException {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Место уже заняли')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Место уже заняли')));
     }
     await _load();
   }
@@ -233,7 +231,8 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final iAmJoined = meeting.participantStatus[_uid] == 'joined' ||
+    final iAmJoined =
+        meeting.participantStatus[_uid] == 'joined' ||
         meeting.participants.contains(_uid);
 
     return Scaffold(

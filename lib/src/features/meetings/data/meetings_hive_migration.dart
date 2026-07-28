@@ -19,10 +19,11 @@ class MeetingsHiveMigration {
     var migrated = 0;
     for (final meeting in meetings) {
       try {
-        final existing = await FirebaseFirestore.instance
-            .collection('meetings')
-            .doc(meeting.id)
-            .get();
+        final existing =
+            await FirebaseFirestore.instance
+                .collection('meetings')
+                .doc(meeting.id)
+                .get();
         if (existing.exists) continue;
         await _remote.create(meeting);
         migrated++;

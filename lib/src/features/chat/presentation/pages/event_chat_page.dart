@@ -36,16 +36,21 @@ class _EventChatPageState extends State<EventChatPage> {
 
   Future<void> _bootstrap() async {
     _uid = await getIt<AuthRepository>().currentUserId() ?? 'user-1';
-    _sub = _repo.watchEventChat(widget.eventId).listen((messages) {
-      if (!mounted) return;
-      setState(() {
-        _messages = messages;
-        _loading = false;
-      });
-    }, onError: (_) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-    });
+    _sub = _repo
+        .watchEventChat(widget.eventId)
+        .listen(
+          (messages) {
+            if (!mounted) return;
+            setState(() {
+              _messages = messages;
+              _loading = false;
+            });
+          },
+          onError: (_) {
+            if (!mounted) return;
+            setState(() => _loading = false);
+          },
+        );
   }
 
   @override

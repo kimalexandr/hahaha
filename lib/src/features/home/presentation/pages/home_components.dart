@@ -718,9 +718,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
   Future<void> _loadMeta() async {
     final uid = await getIt<AuthRepository>().currentUserId();
-    final count = await MeetingRepository().countByLinkedEvent(
-      widget.event.id,
-    );
+    final count = await MeetingRepository().countByLinkedEvent(widget.event.id);
     final campaign = await CampaignLocalStorage().activeForEvent(
       widget.event.id,
     );

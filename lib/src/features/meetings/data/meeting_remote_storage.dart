@@ -158,22 +158,20 @@ class MeetingRemoteStorage {
   }
 
   Stream<List<ChatMessage>> watchChat(String meetingId) {
-    return _doc(meetingId)
-        .collection('chat')
-        .orderBy('sentAt')
-        .snapshots()
-        .map((snap) {
-          return snap.docs.map((doc) {
-            final data = doc.data();
-            return ChatMessage(
-              id: doc.id,
-              chatId: meetingId,
-              senderId: data['senderId'] as String? ?? '',
-              text: data['text'] as String? ?? '',
-              createdAt: _asDateTime(data['sentAt']) ?? DateTime.now(),
-            );
-          }).toList();
-        });
+    return _doc(meetingId).collection('chat').orderBy('sentAt').snapshots().map(
+      (snap) {
+        return snap.docs.map((doc) {
+          final data = doc.data();
+          return ChatMessage(
+            id: doc.id,
+            chatId: meetingId,
+            senderId: data['senderId'] as String? ?? '',
+            text: data['text'] as String? ?? '',
+            createdAt: _asDateTime(data['sentAt']) ?? DateTime.now(),
+          );
+        }).toList();
+      },
+    );
   }
 
   Future<void> sendChatMessage({

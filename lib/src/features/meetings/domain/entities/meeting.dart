@@ -89,6 +89,7 @@ enum MeetingStatus {
   full,
   closed,
   cancelled,
+
   /// Legacy Hive: полный набор пары.
   matched;
 
@@ -258,8 +259,8 @@ class Meeting {
     if (scheduledRaw is DateTime) {
       scheduledAt = scheduledRaw;
     } else {
-      scheduledAt = DateTime.tryParse(scheduledRaw?.toString() ?? '') ??
-          DateTime.now();
+      scheduledAt =
+          DateTime.tryParse(scheduledRaw?.toString() ?? '') ?? DateTime.now();
     }
 
     final createdRaw = map['createdAt'];

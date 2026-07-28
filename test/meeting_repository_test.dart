@@ -52,11 +52,7 @@ void main() {
     expect(joined.status, MeetingStatus.full);
 
     await expectLater(
-      repo.join(
-        meetingId: 'm-join',
-        uid: 'other',
-        compatibilityScore: 10,
-      ),
+      repo.join(meetingId: 'm-join', uid: 'other', compatibilityScore: 10),
       throwsA(isA<MeetingFullException>()),
     );
   });

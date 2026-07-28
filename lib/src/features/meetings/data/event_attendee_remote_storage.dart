@@ -51,10 +51,9 @@ class EventAttendeeRemoteStorage {
     int limit = 50,
   }) async {
     final snap =
-        await _attendees(eventId)
-            .where('status', isEqualTo: 'going')
-            .limit(limit)
-            .get();
+        await _attendees(
+          eventId,
+        ).where('status', isEqualTo: 'going').limit(limit).get();
     return snap.docs.map((doc) {
       final data = doc.data();
       final raw = data['interestsSnapshot'];

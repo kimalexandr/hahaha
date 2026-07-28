@@ -30,16 +30,21 @@ class _MeetingChatPageState extends State<MeetingChatPage> {
   @override
   void initState() {
     super.initState();
-    _sub = _repo.watchMeetingChat(widget.meetingId).listen((messages) {
-      if (!mounted) return;
-      setState(() {
-        _messages = messages;
-        _loading = false;
-      });
-    }, onError: (_) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-    });
+    _sub = _repo
+        .watchMeetingChat(widget.meetingId)
+        .listen(
+          (messages) {
+            if (!mounted) return;
+            setState(() {
+              _messages = messages;
+              _loading = false;
+            });
+          },
+          onError: (_) {
+            if (!mounted) return;
+            setState(() => _loading = false);
+          },
+        );
   }
 
   @override
