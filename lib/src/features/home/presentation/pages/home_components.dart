@@ -1,7 +1,4 @@
-import 'package:eventa/src/core/di/injection.dart';
-import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
-import 'package:eventa/src/features/chat/presentation/pages/event_chat_page.dart';
-import 'package:eventa/src/features/meetings/data/campaign_local_storage.dart';
+import 'package:eventa/src/features/meetings/data/campaign_repository.dart';
 import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
 import 'package:eventa/src/features/meetings/domain/entities/event_meetup_campaign.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
@@ -10,12 +7,18 @@ import 'package:eventa/src/features/meetings/presentation/pages/create_meeting_p
 import 'package:eventa/src/features/meetings/presentation/pages/meeting_created_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:eventa/src/features/home/domain/entities/event.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 import 'package:eventa/src/features/profile/domain/profile_interest_catalog.dart';
 import 'package:eventa/src/features/profile/presentation/pages/phone_verify_page.dart';
+import 'package:eventa/src/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:eventa/src/features/auth/presentation/bloc/auth_event.dart';
+import 'package:eventa/src/core/di/injection.dart';
+import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
+import 'package:eventa/src/features/chat/presentation/pages/event_chat_page.dart';
 
 class EventCard extends StatelessWidget {
   final Event event;
@@ -354,6 +357,18 @@ class _ProfilePageState extends State<ProfilePage> {
             child: ElevatedButton(
               onPressed: _saveProfile,
               child: const Text('Сохранить профиль'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                context.read<AuthBloc>().add(AuthSignOutRequested());
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+              icon: const Icon(Icons.logout),
+              label: const Text('Выйти'),
             ),
           ),
         ],
@@ -719,7 +734,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
   Future<void> _loadMeta() async {
     final uid = await getIt<AuthRepository>().currentUserId();
     final count = await MeetingRepository().countByLinkedEvent(widget.event.id);
-    final campaign = await CampaignLocalStorage().activeForEvent(
+    final campaign = await CampaignRepository().activeForEvent(
       widget.event.id,
     );
     if (!mounted) return;
@@ -743,7 +758,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
       final updated = campaign.copyWith(
         linkedMeetingIds: [...campaign.linkedMeetingIds, meeting.id],
       );
-      await CampaignLocalStorage().upsert(updated);
+      await CampaignRepository().upsert(updated);
     }
     if (!mounted) return;
 
@@ -768,7 +783,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
       createdAt: DateTime.now(),
       targetGroupSize: 4,
     );
-    await CampaignLocalStorage().upsert(campaign);
+    await CampaignRepository().upsert(campaign);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Кампания сбора компании запущена')),

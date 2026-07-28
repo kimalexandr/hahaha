@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:eventa/src/features/chat/domain/entities/chat_message.dart';
 import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
+import 'package:eventa/src/features/push/presentation/push_ui_context.dart';
 import 'package:flutter/material.dart';
 
 class MeetingChatPage extends StatefulWidget {
@@ -30,6 +31,7 @@ class _MeetingChatPageState extends State<MeetingChatPage> {
   @override
   void initState() {
     super.initState();
+    PushUiContext.openMeetingChatId = widget.meetingId;
     _sub = _repo
         .watchMeetingChat(widget.meetingId)
         .listen(
@@ -49,6 +51,9 @@ class _MeetingChatPageState extends State<MeetingChatPage> {
 
   @override
   void dispose() {
+    if (PushUiContext.openMeetingChatId == widget.meetingId) {
+      PushUiContext.openMeetingChatId = null;
+    }
     _sub?.cancel();
     _controller.dispose();
     super.dispose();

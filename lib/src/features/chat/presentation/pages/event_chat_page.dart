@@ -4,6 +4,7 @@ import 'package:eventa/src/core/di/injection.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
 import 'package:eventa/src/features/chat/domain/entities/chat_message.dart';
 import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
+import 'package:eventa/src/features/push/presentation/push_ui_context.dart';
 import 'package:flutter/material.dart';
 
 class EventChatPage extends StatefulWidget {
@@ -31,6 +32,7 @@ class _EventChatPageState extends State<EventChatPage> {
   @override
   void initState() {
     super.initState();
+    PushUiContext.openEventChatId = widget.eventId;
     _bootstrap();
   }
 
@@ -55,6 +57,9 @@ class _EventChatPageState extends State<EventChatPage> {
 
   @override
   void dispose() {
+    if (PushUiContext.openEventChatId == widget.eventId) {
+      PushUiContext.openEventChatId = null;
+    }
     _sub?.cancel();
     _controller.dispose();
     super.dispose();

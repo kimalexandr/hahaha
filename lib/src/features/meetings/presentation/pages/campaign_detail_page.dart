@@ -1,4 +1,4 @@
-import 'package:eventa/src/features/meetings/data/campaign_local_storage.dart';
+import 'package:eventa/src/features/meetings/data/campaign_repository.dart';
 import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
 import 'package:eventa/src/features/meetings/domain/entities/event_meetup_campaign.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
@@ -42,7 +42,7 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
 
   Future<void> _closeCampaign() async {
     final updated = widget.campaign.copyWith(status: 'closed');
-    await CampaignLocalStorage().upsert(updated);
+    await CampaignRepository().upsert(updated);
     if (!mounted) return;
     Navigator.of(context).pop(updated);
   }

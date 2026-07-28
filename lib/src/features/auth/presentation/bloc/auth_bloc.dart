@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
+import 'package:eventa/src/features/push/data/push_notification_service.dart';
 import 'package:injectable/injectable.dart';
 
 import 'auth_event.dart';
@@ -35,6 +36,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     });
 
     on<AuthSignOutRequested>((event, emit) async {
+      try {
+        await pushNotificationService.stopAndClearToken();
+      } catch (_) {}
       await _authRepository.signOut();
     });
   }
@@ -46,7 +50,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 }
 
-// Private event for internal use
 class _AuthStatusChanged extends AuthEvent {
   final bool isAuthenticated;
 

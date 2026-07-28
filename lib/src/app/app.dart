@@ -6,6 +6,7 @@ import 'package:eventa/src/features/auth/presentation/bloc/auth_state.dart';
 import 'package:eventa/src/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:eventa/src/features/home/presentation/pages/home_page.dart';
 import 'package:eventa/src/features/profile/presentation/pages/edit_profile_page.dart';
+import 'package:eventa/src/features/push/data/push_notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -57,20 +58,29 @@ class _AppState extends State<App> {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => getIt<AuthBloc>()..add(AuthCheckRequested()),
-      child: MaterialApp(
-        navigatorKey: _navigatorKey,
-        title: 'Eventa',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
+      child: BlocListener<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is Authenticated) {
+            pushNotificationService.start(_navigatorKey);
+          } else if (state is Unauthenticated) {
+            // Токен чистится в AuthSignOutRequested до signOut.
+          }
+        },
+        child: MaterialApp(
+          navigatorKey: _navigatorKey,
+          title: 'Eventa',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+            useMaterial3: true,
+          ),
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('ru'), Locale('en')],
+          home: const AuthGate(),
         ),
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [Locale('ru'), Locale('en')],
-        home: const AuthGate(),
       ),
     );
   }
