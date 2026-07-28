@@ -734,9 +734,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
   Future<void> _loadMeta() async {
     final uid = await getIt<AuthRepository>().currentUserId();
     final count = await MeetingRepository().countByLinkedEvent(widget.event.id);
-    final campaign = await CampaignRepository().activeForEvent(
-      widget.event.id,
-    );
+    final campaign = await CampaignRepository().activeForEvent(widget.event.id);
     if (!mounted) return;
     setState(() {
       _companySeekers = count;

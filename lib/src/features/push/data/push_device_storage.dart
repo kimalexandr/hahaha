@@ -33,10 +33,7 @@ class PushDeviceStorage {
     return id;
   }
 
-  Future<void> upsertToken({
-    required String uid,
-    required String token,
-  }) async {
+  Future<void> upsertToken({required String uid, required String token}) async {
     final deviceId = await stableDeviceId();
     final platform =
         defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';

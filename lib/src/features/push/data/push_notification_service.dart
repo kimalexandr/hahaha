@@ -189,8 +189,7 @@ class PushNotificationService {
         if (eventId == null || !ctx.mounted) return;
         await Navigator.of(ctx).push(
           MaterialPageRoute(
-            builder:
-                (_) => EventChatPage(eventId: eventId, eventTitle: title),
+            builder: (_) => EventChatPage(eventId: eventId, eventTitle: title),
           ),
         );
     }
