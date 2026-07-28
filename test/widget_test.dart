@@ -32,5 +32,7 @@ void main() {
     expect(find.text('Eventa'), findsOneWidget);
     expect(find.text('Войти через Google'), findsOneWidget);
     expect(find.text('Нет аккаунта? Зарегистрироваться'), findsOneWidget);
+    // В mock/demo Firebase выключен — показываем подсказку вместо ссылки сброса.
+    expect(find.text('Сброс пароля недоступен в демо-режиме'), findsOneWidget);
   });
 }

@@ -163,6 +163,7 @@ class PushNotificationService {
           ),
         );
       case 'meeting_joined':
+      case 'meeting_full':
         final meetingId = data['meetingId'] as String?;
         if (meetingId == null) return;
         final meeting = await MeetingRepository().readById(meetingId);

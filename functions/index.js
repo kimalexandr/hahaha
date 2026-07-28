@@ -10,15 +10,11 @@ function truncate(text, max = 80) {
   return `${t.slice(0, max - 1)}…`;
 }
 
-async function getNotificationSettings(uid) {
-  const snap = await db.collection('users').doc(uid).get();
-  const settings = (snap.data() && snap.data().notificationSettings) || {};
-  return {
-    meetingChat: settings.meetingChat !== false,
-    meetingJoined: settings.meetingJoined !== false,
-    eventChatDigest: settings.eventChatDigest !== false,
-    campaignUpdates: settings.campaignUpdates !== false,
-  };
+/** Default true if field missing (users до миграции схемы). */
+async function shouldNotify(uid, settingKey) {
+  const userDoc = await db.collection('users').doc(uid).get();
+  const settings = userDoc.data()?.notificationSettings;
+  return settings?.[settingKey] !== false;
 }
 
 async function getDeviceTokens(uid) {
@@ -37,8 +33,9 @@ async function getDisplayName(uid) {
 }
 
 async function sendToUser(uid, { notification, data, settingKey }) {
-  const settings = await getNotificationSettings(uid);
-  if (settingKey && settings[settingKey] === false) return { skipped: true };
+  if (settingKey && !(await shouldNotify(uid, settingKey))) {
+    return { skipped: true };
+  }
 
   const tokens = await getDeviceTokens(uid);
   if (!tokens.length) return { sent: 0 };
@@ -54,29 +51,60 @@ async function sendToUser(uid, { notification, data, settingKey }) {
   return { sent: res.successCount, failure: res.failureCount };
 }
 
-/** 2.2 Новый участник (create со status=joined или update → joined) */
+/** 2.2 Новый участник + опционально «группа набрана» */
 async function notifyMeetingJoined(meetingId, joinedUid) {
-  const meetingSnap = await db.collection('meetings').doc(meetingId).get();
+  const meetingRef = db.collection('meetings').doc(meetingId);
+  const meetingSnap = await meetingRef.get();
   if (!meetingSnap.exists) return null;
   const meeting = meetingSnap.data() || {};
   const creatorId = meeting.creatorId || meeting.hostUserId;
-  if (!creatorId || creatorId === joinedUid) return null;
-
-  const userName = await getDisplayName(joinedUid);
   const topic = meeting.topic || meeting.venueName || 'встреча';
+  const results = [];
 
-  return sendToUser(creatorId, {
-    settingKey: 'meetingJoined',
-    notification: {
-      title: 'Новый участник',
-      body: `${userName} присоединился к встрече «${topic}»`,
-    },
-    data: {
-      type: 'meeting_joined',
-      meetingId,
-      joinedUserId: joinedUid,
-    },
-  });
+  if (creatorId && creatorId !== joinedUid) {
+    const userName = await getDisplayName(joinedUid);
+    results.push(
+      await sendToUser(creatorId, {
+        settingKey: 'meetingJoined',
+        notification: {
+          title: 'Новый участник',
+          body: `${userName} присоединился к встрече «${topic}»`,
+        },
+        data: {
+          type: 'meeting_joined',
+          meetingId,
+          joinedUserId: joinedUid,
+        },
+      })
+    );
+  }
+
+  const current = meeting.currentParticipantCount || 0;
+  const max = meeting.maxParticipants || 0;
+  if (max > 0 && current === max) {
+    const participantsSnap = await meetingRef
+      .collection('participants')
+      .where('status', '==', 'joined')
+      .get();
+    for (const doc of participantsSnap.docs) {
+      results.push(
+        await sendToUser(doc.id, {
+          settingKey: 'meetingJoined',
+          notification: {
+            title: 'Группа набрана',
+            body: `Встреча «${topic}» собрала ${max} участников`,
+          },
+          data: {
+            type: 'meeting_full',
+            meetingId,
+            title: 'Группа набрана',
+          },
+        })
+      );
+    }
+  }
+
+  return results;
 }
 
 exports.onMeetingParticipantCreated = functions.firestore
@@ -157,7 +185,6 @@ exports.onMeetingCreated = functions.firestore
     const campaign = campaignDoc.data() || {};
     const organizerId = campaign.organizerId;
     if (!organizerId) return null;
-    // Не спамим создателю встречи, если он же организатор и сам создал.
     if (organizerId === meeting.creatorId) return null;
 
     return sendToUser(organizerId, {
@@ -176,7 +203,7 @@ exports.onMeetingCreated = functions.firestore
     });
   });
 
-/** 2.3 Дайджест чата события — накопление */
+/** 2.3 Дайджест чата события — накопление (флаг проверяется при flush) */
 exports.onEventChatCreated = functions.firestore
   .document('events/{eventId}/eventChat/{messageId}')
   .onCreate(async (snap, context) => {

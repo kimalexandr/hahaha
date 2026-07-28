@@ -14,6 +14,7 @@ import 'package:eventa/src/features/home/domain/entities/event.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 import 'package:eventa/src/features/profile/domain/profile_interest_catalog.dart';
 import 'package:eventa/src/features/profile/presentation/pages/phone_verify_page.dart';
+import 'package:eventa/src/features/push/presentation/pages/notification_settings_page.dart';
 import 'package:eventa/src/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:eventa/src/features/auth/presentation/bloc/auth_event.dart';
 import 'package:eventa/src/core/di/injection.dart';
@@ -351,6 +352,23 @@ class _ProfilePageState extends State<ProfilePage> {
               trailing: const Icon(Icons.chevron_right),
               onTap: _openPhoneVerify,
             ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.notifications_outlined),
+            title: const Text('Уведомления'),
+            subtitle: const Text('Пуши о встречах, чатах и кампаниях'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder:
+                      (_) => NotificationSettingsPage(
+                        isOrganizer: _role == 'organizer',
+                      ),
+                ),
+              );
+            },
+          ),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,

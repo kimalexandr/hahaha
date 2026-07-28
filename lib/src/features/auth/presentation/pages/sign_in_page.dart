@@ -1,6 +1,8 @@
+import 'package:eventa/src/core/app_runtime_config.dart';
 import 'package:eventa/src/core/di/injection.dart';
 import 'package:eventa/src/features/auth/data/google_sign_in_helper.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
+import 'package:eventa/src/features/auth/presentation/pages/forgot_password_page.dart';
 import 'package:eventa/src/features/auth/presentation/pages/register_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -93,6 +95,17 @@ class _SignInPageState extends State<SignInPage> {
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const RegisterPage()));
+  }
+
+  void _openForgotPassword() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (_) => ForgotPasswordPage(
+              initialEmail: _emailController.text.trim(),
+            ),
+      ),
+    );
   }
 
   @override
@@ -210,6 +223,20 @@ class _SignInPageState extends State<SignInPage> {
                     ),
                     child: const Text('Войти'),
                   ),
+                  const SizedBox(height: 8),
+                  if (appUsesFirebaseBackend)
+                    TextButton(
+                      onPressed: _openForgotPassword,
+                      child: const Text('Забыли пароль?'),
+                    )
+                  else
+                    Text(
+                      'Сброс пароля недоступен в демо-режиме',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                 ],
               ],
             ),
