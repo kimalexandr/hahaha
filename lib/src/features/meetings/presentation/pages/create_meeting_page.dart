@@ -59,9 +59,8 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
       final auth = getIt<AuthRepository>();
       final uid = await auth.currentUserId() ?? 'user-1';
       final profile = await ProfilePersistence().read(uid);
-      final hostName = profile?.name.isNotEmpty == true
-          ? profile!.name
-          : 'Пользователь';
+      final hostName =
+          profile?.name.isNotEmpty == true ? profile!.name : 'Пользователь';
 
       final meeting = Meeting(
         id: 'meeting-${DateTime.now().millisecondsSinceEpoch}',
@@ -96,7 +95,10 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(widget.venue.name, style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            widget.venue.name,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           Text('${widget.venue.type.labelRu} · ${widget.venue.address}'),
           const SizedBox(height: 20),
           Text('Формат', style: Theme.of(context).textTheme.titleMedium),

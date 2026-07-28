@@ -71,9 +71,7 @@ class _MeetingChatPageState extends State<MeetingChatPage> {
                 _loading
                     ? const Center(child: CircularProgressIndicator())
                     : _messages.isEmpty
-                    ? const Center(
-                      child: Text('Напишите первое сообщение'),
-                    )
+                    ? const Center(child: Text('Напишите первое сообщение'))
                     : ListView.builder(
                       padding: const EdgeInsets.all(12),
                       itemCount: _messages.length,

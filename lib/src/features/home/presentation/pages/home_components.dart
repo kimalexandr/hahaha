@@ -251,10 +251,7 @@ class _ProfilePageState extends State<ProfilePage> {
             decoration: const InputDecoration(labelText: 'Роль'),
             items: const [
               DropdownMenuItem(value: 'user', child: Text('Пользователь')),
-              DropdownMenuItem(
-                value: 'organizer',
-                child: Text('Организатор'),
-              ),
+              DropdownMenuItem(value: 'organizer', child: Text('Организатор')),
             ],
             onChanged: (value) {
               if (value == null) return;

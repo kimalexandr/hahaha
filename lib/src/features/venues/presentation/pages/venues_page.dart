@@ -102,7 +102,9 @@ class _VenuesPageState extends State<VenuesPage> {
                             contentPadding: const EdgeInsets.all(12),
                             leading: CircleAvatar(
                               backgroundColor:
-                                  Theme.of(context).colorScheme.primaryContainer,
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.primaryContainer,
                               child: Text(venue.type.labelRu.substring(0, 1)),
                             ),
                             title: Text(venue.name),

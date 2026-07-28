@@ -5,11 +5,9 @@ import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 
 /// Сохраняет профиль локально и, если Firebase доступен, в Firestore.
 class ProfilePersistence {
-  ProfilePersistence({
-    HomeLocalStorage? local,
-    HomeRemoteStorage? remote,
-  }) : _local = local ?? HomeLocalStorage(),
-       _remote = remote;
+  ProfilePersistence({HomeLocalStorage? local, HomeRemoteStorage? remote})
+    : _local = local ?? HomeLocalStorage(),
+      _remote = remote;
 
   final HomeLocalStorage _local;
   final HomeRemoteStorage? _remote;

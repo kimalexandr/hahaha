@@ -48,14 +48,16 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
           readyForMeeting: true,
         );
 
-    final people = DemoCandidateCatalog.all(excludeOwnerId: uid)
-        .where(
-          (p) =>
-              p.readyForMeeting &&
-              (p.city.isEmpty ||
-                  p.city.toLowerCase() == widget.meeting.city.toLowerCase()),
-        )
-        .toList();
+    final people =
+        DemoCandidateCatalog.all(excludeOwnerId: uid)
+            .where(
+              (p) =>
+                  p.readyForMeeting &&
+                  (p.city.isEmpty ||
+                      p.city.toLowerCase() ==
+                          widget.meeting.city.toLowerCase()),
+            )
+            .toList();
 
     final views = <_CandidateView>[];
     for (final person in people) {
@@ -66,7 +68,10 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
       );
       // Для демо: взаимность симулируем, если уже выразили интерес
       // и у кандидата есть пересечение интересов > 0.
-      final score = CompatibilityScore.byInterests(me.interests, person.interests);
+      final score = CompatibilityScore.byInterests(
+        me.interests,
+        person.interests,
+      );
       var mutual = await _interestStorage.isMutual(
         meetingId: widget.meeting.id,
         userA: uid,
@@ -182,8 +187,7 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
                                                     meetingId:
                                                         widget.meeting.id,
                                                     userA: uid,
-                                                    userB:
-                                                        item.profile.ownerId,
+                                                    userB: item.profile.ownerId,
                                                   );
                                               Navigator.of(context).push(
                                                 MaterialPageRoute(
@@ -197,7 +201,9 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
                                                 ),
                                               );
                                             },
-                                            icon: const Icon(Icons.chat_bubble_outline),
+                                            icon: const Icon(
+                                              Icons.chat_bubble_outline,
+                                            ),
                                           ),
                                         item.interested
                                             ? const Icon(

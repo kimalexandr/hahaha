@@ -60,9 +60,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (!mounted) return;
 
       context.read<AuthBloc>().add(AuthCheckRequested());
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomePage()));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

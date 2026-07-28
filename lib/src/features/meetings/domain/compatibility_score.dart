@@ -16,8 +16,6 @@ class CompatibilityScore {
 
   static List<String> sharedInterests(UserProfile a, UserProfile b) {
     final setB = b.interests.map((e) => e.toLowerCase()).toSet();
-    return a.interests
-        .where((e) => setB.contains(e.toLowerCase()))
-        .toList();
+    return a.interests.where((e) => setB.contains(e.toLowerCase())).toList();
   }
 }
