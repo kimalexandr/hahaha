@@ -21,7 +21,8 @@ class _PlacesQuizPageState extends State<PlacesQuizPage> {
   String get _questionId => _question['id'] as String;
   String get _questionText => _question['text'] as String;
   bool get _isLast => _step == placesQuizQuestions.length - 1;
-  Set<String> get _selected => _answers.putIfAbsent(_questionId, () => <String>{});
+  Set<String> get _selected =>
+      _answers.putIfAbsent(_questionId, () => <String>{});
 
   @override
   void initState() {

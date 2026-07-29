@@ -46,11 +46,7 @@ class _PhoneVerifyPageState extends State<PhoneVerifyPage> {
               bio: '',
               role: 'user',
             ))
-        .copyWith(
-          phoneVerified: true,
-          phoneVerifiedAt: now,
-          isVerified: true,
-        );
+        .copyWith(phoneVerified: true, phoneVerifiedAt: now, isVerified: true);
     await _persistence.save(profile);
   }
 

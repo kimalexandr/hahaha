@@ -62,8 +62,7 @@ class _SignInPageState extends State<SignInPage> {
         case 'network-request-failed':
           return 'Нет сети. Проверьте подключение.';
         case 'account-exists-with-different-credential':
-          return error.message ??
-              'Email уже занят другим способом входа.';
+          return error.message ?? 'Email уже занят другим способом входа.';
         case 'google-sign-in-cancelled':
           return 'Вход через Google отменён.';
         case 'google-id-token-missing':

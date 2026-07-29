@@ -11,7 +11,12 @@ class AccountBadges extends StatelessWidget {
   Widget build(BuildContext context) {
     final chips = <Widget>[
       if (profile.hasActivePremium)
-        _badge(context, Icons.workspace_premium, 'Premium', Colors.amber.shade800),
+        _badge(
+          context,
+          Icons.workspace_premium,
+          'Premium',
+          Colors.amber.shade800,
+        ),
       if (profile.isVerified || profile.phoneVerified)
         _badge(context, Icons.verified, 'Верифицирован', Colors.green.shade700),
       if (profile.isModerator)

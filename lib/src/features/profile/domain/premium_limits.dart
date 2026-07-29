@@ -12,8 +12,7 @@ class PremiumLimits {
     // ISO-подобная неделя от понедельника.
     final monday = start.subtract(Duration(days: (start.weekday - 1) % 7));
     final y = monday.year;
-    final w =
-        ((monday.difference(DateTime(y, 1, 1)).inDays) / 7).floor() + 1;
+    final w = ((monday.difference(DateTime(y, 1, 1)).inDays) / 7).floor() + 1;
     return '$y-W$w';
   }
 }
@@ -44,7 +43,11 @@ class PremiumQuotaService {
     };
   }
 
-  Future<void> _save(String uid, {required int invites, required int creates}) async {
+  Future<void> _save(
+    String uid, {
+    required int invites,
+    required int creates,
+  }) async {
     final box = await _open();
     await box.put(uid, {
       'week': PremiumLimits.weekKey(),
@@ -59,7 +62,10 @@ class PremiumQuotaService {
   Future<int> createsUsed(String uid) async =>
       (await _usage(uid))['creates'] ?? 0;
 
-  Future<int> invitesLeft({required String uid, required bool isPremium}) async {
+  Future<int> invitesLeft({
+    required String uid,
+    required bool isPremium,
+  }) async {
     if (isPremium) return 999;
     final used = await invitesUsed(uid);
     return (PremiumLimits.freeInvitesPerWeek - used).clamp(
@@ -68,7 +74,10 @@ class PremiumQuotaService {
     );
   }
 
-  Future<int> createsLeft({required String uid, required bool isPremium}) async {
+  Future<int> createsLeft({
+    required String uid,
+    required bool isPremium,
+  }) async {
     if (isPremium) return 999;
     final used = await createsUsed(uid);
     return (PremiumLimits.freeCreatesPerWeek - used).clamp(

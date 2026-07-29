@@ -110,9 +110,10 @@ class _MeetingChatPageState extends State<MeetingChatPage> {
                       itemBuilder: (context, index) {
                         final msg = _messages[index];
                         final mine = msg.senderId == widget.myUserId;
-                        final name = msg.senderName?.isNotEmpty == true
-                            ? msg.senderName!
-                            : (mine ? _myName : 'Участник');
+                        final name =
+                            msg.senderName?.isNotEmpty == true
+                                ? msg.senderName!
+                                : (mine ? _myName : 'Участник');
                         return Align(
                           alignment:
                               mine
@@ -142,7 +143,9 @@ class _MeetingChatPageState extends State<MeetingChatPage> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   AppUserAvatar(
-                                    photoUrl: msg.senderPhotoUrl ?? (mine ? _myPhoto : null),
+                                    photoUrl:
+                                        msg.senderPhotoUrl ??
+                                        (mine ? _myPhoto : null),
                                     name: name,
                                     radius: 16,
                                     onTap: () {
@@ -164,27 +167,27 @@ class _MeetingChatPageState extends State<MeetingChatPage> {
                                       children: [
                                         Text(
                                           name,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelMedium
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w700,
-                                              ),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.labelMedium?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                         ),
                                         const SizedBox(height: 2),
                                         Text(msg.text),
                                         const SizedBox(height: 4),
                                         Text(
-                                          timeFmt.format(msg.createdAt.toLocal()),
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelSmall
-                                              ?.copyWith(
-                                                color:
-                                                    Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurfaceVariant,
-                                              ),
+                                          timeFmt.format(
+                                            msg.createdAt.toLocal(),
+                                          ),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.labelSmall?.copyWith(
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                          ),
                                         ),
                                       ],
                                     ),

@@ -711,74 +711,83 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         bottom: false,
         child: Column(
-        children: [
-          if (_selectedTabIndex == 0) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Card(
-                margin: EdgeInsets.zero,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: const InputDecoration(
-                      hintText: 'Поиск мероприятий',
-                      prefixIcon: Icon(Icons.search),
+          children: [
+            if (_selectedTabIndex == 0) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Card(
+                  margin: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        hintText: 'Поиск мероприятий',
+                        prefixIcon: Icon(Icons.search),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _cityFilterController,
-                      onChanged: (_) => _applyFilters(),
-                      decoration: const InputDecoration(
-                        hintText: 'Город',
-                        prefixIcon: Icon(Icons.location_city_outlined),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _cityFilterController,
+                        onChanged: (_) => _applyFilters(),
+                        decoration: const InputDecoration(
+                          hintText: 'Город',
+                          prefixIcon: Icon(Icons.location_city_outlined),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  DropdownButton<String>(
-                    value: _selectedCategory,
-                    items: const [
-                      DropdownMenuItem(value: 'Все', child: Text('Все')),
-                      DropdownMenuItem(value: 'Музыка', child: Text('Музыка')),
-                      DropdownMenuItem(value: 'Бизнес', child: Text('Бизнес')),
-                      DropdownMenuItem(
-                        value: 'Образование',
-                        child: Text('Образование'),
-                      ),
-                      DropdownMenuItem(value: 'Спорт', child: Text('Спорт')),
-                    ],
-                    onChanged: (value) {
-                      if (value == null) return;
-                      _selectedCategory = value;
-                      _applyFilters();
-                    },
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    DropdownButton<String>(
+                      value: _selectedCategory,
+                      items: const [
+                        DropdownMenuItem(value: 'Все', child: Text('Все')),
+                        DropdownMenuItem(
+                          value: 'Музыка',
+                          child: Text('Музыка'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Бизнес',
+                          child: Text('Бизнес'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Образование',
+                          child: Text('Образование'),
+                        ),
+                        DropdownMenuItem(value: 'Спорт', child: Text('Спорт')),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) return;
+                        _selectedCategory = value;
+                        _applyFilters();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 280),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                child: KeyedSubtree(
+                  key: ValueKey(_selectedTabIndex),
+                  child: _buildTabContent(),
+                ),
               ),
             ),
           ],
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 280),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              child: KeyedSubtree(
-                key: ValueKey(_selectedTabIndex),
-                child: _buildTabContent(),
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
       ),
       floatingActionButton:
           (_selectedTabIndex == 0 && _profile.role == 'organizer')
@@ -795,42 +804,42 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: SafeArea(
         top: false,
         child: BottomNavigationBar(
-        currentIndex: _selectedTabIndex,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: cs.surface,
-        selectedItemColor: cs.primary,
-        unselectedItemColor: cs.onSurfaceVariant,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
-        showUnselectedLabels: true,
-        onTap: (index) {
-          setState(() {
-            _selectedTabIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Лента',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.event_note_outlined),
-            label: 'Мои',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark_outline),
-            label: 'Избранное',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.confirmation_num_outlined),
-            label: 'Билеты',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.local_activity_outlined),
-            label: 'Активность',
-          ),
-        ],
-      ),
+          currentIndex: _selectedTabIndex,
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: cs.surface,
+          selectedItemColor: cs.primary,
+          unselectedItemColor: cs.onSurfaceVariant,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+          showUnselectedLabels: true,
+          onTap: (index) {
+            setState(() {
+              _selectedTabIndex = index;
+            });
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              label: 'Лента',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.event_note_outlined),
+              label: 'Мои',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bookmark_outline),
+              label: 'Избранное',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.confirmation_num_outlined),
+              label: 'Билеты',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.local_activity_outlined),
+              label: 'Активность',
+            ),
+          ],
+        ),
       ),
     );
   }

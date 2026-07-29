@@ -17,10 +17,13 @@ class UserProfile {
   final Map<String, List<String>> placesQuizAnswers;
   final List<String> profilePhotoUrls;
   final int mainPhotoIndex;
+
   /// Premium-подписка: без лимитов и без блюра чужих профилей.
   final bool isPremium;
+
   /// Верификация (телефон / модератор).
   final bool isVerified;
+
   /// Права модератора.
   final bool isModerator;
   final DateTime? premiumUntil;

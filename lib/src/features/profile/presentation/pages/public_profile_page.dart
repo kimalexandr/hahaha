@@ -134,10 +134,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       ? ColoredBox(
                         color: Colors.grey.shade300,
                         child: Center(
-                          child: AppUserAvatar(
-                            name: profile.name,
-                            radius: 48,
-                          ),
+                          child: AppUserAvatar(name: profile.name, radius: 48),
                         ),
                       )
                       : Image(image: photo, fit: BoxFit.cover),
@@ -148,17 +145,16 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         Text(
           profile.name,
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 6),
         Text(
           [
             if (age != null) '$age лет',
             if (profile.city.isNotEmpty) profile.city,
-            if (profile.zodiacSign != null)
-              zodiacRuLabel(profile.zodiacSign),
+            if (profile.zodiacSign != null) zodiacRuLabel(profile.zodiacSign),
           ].join(' · '),
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium,
@@ -174,11 +170,12 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               children: [
                 Text('О себе', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
-                Text(
-                  profile.bio.isEmpty ? 'Пока без описания' : profile.bio,
-                ),
+                Text(profile.bio.isEmpty ? 'Пока без описания' : profile.bio),
                 const SizedBox(height: 12),
-                Text('Интересы', style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  'Интересы',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,

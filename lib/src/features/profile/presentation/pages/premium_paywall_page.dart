@@ -65,9 +65,9 @@ class _PremiumPaywallPageState extends State<PremiumPaywallPage> {
           ],
           Text(
             'Больше свободы в Eventa',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
           const _Benefit(text: 'Безлимитные приглашения в чат'),
@@ -131,7 +131,10 @@ class _Benefit extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary),
+          Icon(
+            Icons.check_circle,
+            color: Theme.of(context).colorScheme.primary,
+          ),
           const SizedBox(width: 10),
           Expanded(child: Text(text)),
         ],
@@ -140,14 +143,9 @@ class _Benefit extends StatelessWidget {
   }
 }
 
-Future<bool> openPremiumPaywall(
-  BuildContext context, {
-  String? reason,
-}) async {
+Future<bool> openPremiumPaywall(BuildContext context, {String? reason}) async {
   final result = await Navigator.of(context).push<bool>(
-    MaterialPageRoute(
-      builder: (_) => PremiumPaywallPage(reason: reason),
-    ),
+    MaterialPageRoute(builder: (_) => PremiumPaywallPage(reason: reason)),
   );
   return result == true;
 }

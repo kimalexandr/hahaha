@@ -442,9 +442,9 @@ class _ProfilePageState extends State<ProfilePage> {
       });
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось добавить фото')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Не удалось добавить фото')));
     } finally {
       if (mounted) setState(() => _uploadingPhoto = false);
     }
@@ -554,7 +554,11 @@ class _ProfilePageState extends State<ProfilePage> {
             ],
             if (widget.initialProfile.hasActivePremium) ...[
               const SizedBox(width: 8),
-              const Icon(Icons.workspace_premium, color: Colors.amber, size: 20),
+              const Icon(
+                Icons.workspace_premium,
+                color: Colors.amber,
+                size: 20,
+              ),
             ],
             if (_isModerator) ...[
               const SizedBox(width: 8),
@@ -750,7 +754,8 @@ class _ProfilePageState extends State<ProfilePage> {
           Text('Фото (до 10)', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           OutlinedButton.icon(
-            onPressed: _photoUrls.length >= 10 || _uploadingPhoto ? null : _pickPhoto,
+            onPressed:
+                _photoUrls.length >= 10 || _uploadingPhoto ? null : _pickPhoto,
             icon:
                 _uploadingPhoto
                     ? const SizedBox(
@@ -759,9 +764,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                     : const Icon(Icons.add_a_photo_outlined),
-            label: Text(
-              _uploadingPhoto ? 'Загрузка…' : 'Добавить из галереи',
-            ),
+            label: Text(_uploadingPhoto ? 'Загрузка…' : 'Добавить из галереи'),
           ),
           if (_photoUrls.isNotEmpty)
             SizedBox(
@@ -779,9 +782,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       setState(() {
                         _photoUrls.removeAt(index);
                         if (_mainPhotoIndex >= _photoUrls.length) {
-                          _mainPhotoIndex = _photoUrls.isEmpty
-                              ? 0
-                              : _photoUrls.length - 1;
+                          _mainPhotoIndex =
+                              _photoUrls.isEmpty ? 0 : _photoUrls.length - 1;
                         }
                       });
                     },
@@ -805,7 +807,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                   width: 78,
                                   height: 78,
                                   color: Colors.grey.shade300,
-                                  child: const Icon(Icons.broken_image_outlined),
+                                  child: const Icon(
+                                    Icons.broken_image_outlined,
+                                  ),
                                 )
                                 : Image(
                                   image: provider,
@@ -1642,9 +1646,9 @@ class _AddEventFormState extends State<AddEventForm> {
       setState(() => _photoUrls.add(url));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось добавить фото')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Не удалось добавить фото')));
     } finally {
       if (mounted) setState(() => _uploadingPhoto = false);
     }

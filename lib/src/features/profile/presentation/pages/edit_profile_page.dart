@@ -121,9 +121,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
       });
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось добавить фото')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Не удалось добавить фото')));
     } finally {
       if (mounted) setState(() => _uploadingPhoto = false);
     }
@@ -323,9 +323,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                 )
                                 : const Icon(Icons.add_a_photo_outlined),
                         label: Text(
-                          _uploadingPhoto
-                              ? 'Загрузка…'
-                              : 'Добавить из галереи',
+                          _uploadingPhoto ? 'Загрузка…' : 'Добавить из галереи',
                         ),
                       ),
                       if (_photoUrls.isNotEmpty)
@@ -343,7 +341,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               );
                               return GestureDetector(
                                 onTap:
-                                    () => setState(() => _mainPhotoIndex = index),
+                                    () =>
+                                        setState(() => _mainPhotoIndex = index),
                                 onLongPress: () {
                                   setState(() {
                                     _photoUrls.removeAt(index);

@@ -27,13 +27,14 @@ class EventsMapPage extends StatelessWidget {
       }
       if (point == null) continue;
       // Небольшой разброс, если несколько событий в одном городе.
-      final jitter =
-          (event.id.hashCode % 17) * 0.0012 -
-          0.01;
+      final jitter = (event.id.hashCode % 17) * 0.0012 - 0.01;
       result.add(
         _MapEventPin(
           event: event,
-          point: LatLng(point.latitude + jitter, point.longitude + jitter * 0.7),
+          point: LatLng(
+            point.latitude + jitter,
+            point.longitude + jitter * 0.7,
+          ),
         ),
       );
     }
@@ -44,9 +45,7 @@ class EventsMapPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final pins = _pins;
     final center =
-        pins.isNotEmpty
-            ? pins.first.point
-            : const LatLng(43.238949, 76.945465);
+        pins.isNotEmpty ? pins.first.point : const LatLng(43.238949, 76.945465);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Карта мероприятий')),
@@ -58,10 +57,7 @@ class EventsMapPage extends StatelessWidget {
                 subtitle: 'Укажите город или координаты у мероприятия',
               )
               : FlutterMap(
-                options: MapOptions(
-                  initialCenter: center,
-                  initialZoom: 11,
-                ),
+                options: MapOptions(initialCenter: center, initialZoom: 11),
                 children: [
                   TileLayer(
                     urlTemplate:
@@ -77,7 +73,8 @@ class EventsMapPage extends StatelessWidget {
                                 width: 44,
                                 height: 44,
                                 child: GestureDetector(
-                                  onTap: () => _showEventSheet(context, pin.event),
+                                  onTap:
+                                      () => _showEventSheet(context, pin.event),
                                   child: const Icon(
                                     Icons.location_on,
                                     color: Color(0xFFE53935),

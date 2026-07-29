@@ -113,9 +113,10 @@ class _EventChatPageState extends State<EventChatPage> {
                       itemBuilder: (context, index) {
                         final msg = _messages[index];
                         final mine = msg.senderId == _uid;
-                        final name = msg.senderName?.isNotEmpty == true
-                            ? msg.senderName!
-                            : (mine ? _myName : 'Участник');
+                        final name =
+                            msg.senderName?.isNotEmpty == true
+                                ? msg.senderName!
+                                : (mine ? _myName : 'Участник');
                         return Align(
                           alignment:
                               mine
@@ -169,12 +170,11 @@ class _EventChatPageState extends State<EventChatPage> {
                                       children: [
                                         Text(
                                           name,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelMedium
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w700,
-                                              ),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.labelMedium?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                         ),
                                         const SizedBox(height: 2),
                                         Text(msg.text),
@@ -183,15 +183,14 @@ class _EventChatPageState extends State<EventChatPage> {
                                           timeFmt.format(
                                             msg.createdAt.toLocal(),
                                           ),
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelSmall
-                                              ?.copyWith(
-                                                color:
-                                                    Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurfaceVariant,
-                                              ),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.labelSmall?.copyWith(
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                          ),
                                         ),
                                       ],
                                     ),
