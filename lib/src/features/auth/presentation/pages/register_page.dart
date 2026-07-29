@@ -145,126 +145,131 @@ class _RegisterPageState extends State<RegisterPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                        Text(
-                          'Создайте аккаунт',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'После регистрации заполним профиль за минуту.',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          Text(
+                            'Создайте аккаунт',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 20),
-                        OutlinedButton.icon(
-                          onPressed: _registerWithGoogle,
-                          icon: const Icon(Icons.g_mobiledata),
-                          label: const Text('Продолжить с Google'),
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            const Expanded(child: Divider()),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
+                          const SizedBox(height: 8),
+                          Text(
+                            'После регистрации заполним профиль за минуту.',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium?.copyWith(
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 20),
+                          OutlinedButton.icon(
+                            onPressed: _registerWithGoogle,
+                            icon: const Icon(Icons.g_mobiledata),
+                            label: const Text('Продолжить с Google'),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              const Expanded(child: Divider()),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                                child: Text(
+                                  'или email',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
                               ),
-                              child: Text(
-                                'или email',
-                                style: Theme.of(context).textTheme.bodySmall,
+                              const Expanded(child: Divider()),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: _emailController,
+                            decoration: const InputDecoration(
+                              labelText: 'Email',
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                            autofillHints: const [AutofillHints.email],
+                            validator: (value) {
+                              final v = value?.trim() ?? '';
+                              if (v.isEmpty || !v.contains('@')) {
+                                return 'Введите корректный email';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: _passwordController,
+                            decoration: InputDecoration(
+                              labelText: 'Пароль',
+                              helperText: 'Минимум 6 символов',
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
+                                onPressed: () {
+                                  setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  );
+                                },
                               ),
                             ),
-                            const Expanded(child: Divider()),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _emailController,
-                          decoration: const InputDecoration(labelText: 'Email'),
-                          keyboardType: TextInputType.emailAddress,
-                          autofillHints: const [AutofillHints.email],
-                          validator: (value) {
-                            final v = value?.trim() ?? '';
-                            if (v.isEmpty || !v.contains('@')) {
-                              return 'Введите корректный email';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _passwordController,
-                          decoration: InputDecoration(
-                            labelText: 'Пароль',
-                            helperText: 'Минимум 6 символов',
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
+                            obscureText: _obscurePassword,
+                            autofillHints: const [AutofillHints.newPassword],
+                            validator: (value) {
+                              if (value == null || value.length < 6) {
+                                return 'Пароль не короче 6 символов';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: _confirmController,
+                            decoration: InputDecoration(
+                              labelText: 'Повторите пароль',
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscureConfirm
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
+                                onPressed: () {
+                                  setState(
+                                    () => _obscureConfirm = !_obscureConfirm,
+                                  );
+                                },
                               ),
-                              onPressed: () {
-                                setState(
-                                  () => _obscurePassword = !_obscurePassword,
-                                );
-                              },
                             ),
+                            obscureText: _obscureConfirm,
+                            validator: (value) {
+                              if (value != _passwordController.text) {
+                                return 'Пароли не совпадают';
+                              }
+                              return null;
+                            },
                           ),
-                          obscureText: _obscurePassword,
-                          autofillHints: const [AutofillHints.newPassword],
-                          validator: (value) {
-                            if (value == null || value.length < 6) {
-                              return 'Пароль не короче 6 символов';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _confirmController,
-                          decoration: InputDecoration(
-                            labelText: 'Повторите пароль',
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscureConfirm
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                              ),
-                              onPressed: () {
-                                setState(
-                                  () => _obscureConfirm = !_obscureConfirm,
-                                );
-                              },
+                          const SizedBox(height: 24),
+                          if (_isLoading)
+                            const Center(child: CircularProgressIndicator())
+                          else
+                            FilledButton(
+                              onPressed: _register,
+                              child: const Text('Зарегистрироваться'),
                             ),
+                          const SizedBox(height: 10),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).maybePop(),
+                            child: const Text('Уже есть аккаунт? Войти'),
                           ),
-                          obscureText: _obscureConfirm,
-                          validator: (value) {
-                            if (value != _passwordController.text) {
-                              return 'Пароли не совпадают';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 24),
-                        if (_isLoading)
-                          const Center(child: CircularProgressIndicator())
-                        else
-                          FilledButton(
-                            onPressed: _register,
-                            child: const Text('Зарегистрироваться'),
-                          ),
-                        const SizedBox(height: 10),
-                        TextButton(
-                          onPressed: () => Navigator.of(context).maybePop(),
-                          child: const Text('Уже есть аккаунт? Войти'),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -272,7 +277,6 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
           ),
         ),
-      ),
       ),
     );
   }

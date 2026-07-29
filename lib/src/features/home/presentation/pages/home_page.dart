@@ -154,6 +154,7 @@ class _HomePageState extends State<HomePage> {
       _selectedTabIndex = max.clamp(0, max);
     }
   }
+
   int _visibleCount = _pageSize;
   bool _isLoadingMore = false;
   List<String> _notifications = [];

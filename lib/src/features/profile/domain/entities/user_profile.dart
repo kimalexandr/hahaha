@@ -10,6 +10,7 @@ class UserProfile {
   final bool readyForMeeting;
   final bool phoneVerified;
   final DateTime? phoneVerifiedAt;
+
   /// Номер телефона (если подтверждён или указан).
   final String? phoneNumber;
   final String? gender;

@@ -103,9 +103,10 @@ class MockAuthRepository implements AuthRepository {
     if (!_authStateController.value) return const AuthAccountInfo();
     final profile = await _persistence.read(mockUserId);
     return AuthAccountInfo(
-      email: _registeredAccounts.keys.isNotEmpty
-          ? _registeredAccounts.keys.first
-          : 'demo@eventa.app',
+      email:
+          _registeredAccounts.keys.isNotEmpty
+              ? _registeredAccounts.keys.first
+              : 'demo@eventa.app',
       phoneNumber: profile?.phoneNumber,
       hasPasswordProvider: true,
       hasGoogleProvider: false,

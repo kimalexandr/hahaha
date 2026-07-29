@@ -132,7 +132,8 @@ GoogleSignInErrorInfo googleSignInErrorInfo(Object error) {
     return const GoogleSignInErrorInfo(
       title: 'Вход через Google отменён',
       cause: 'Причина: вход закрыт на экране выбора аккаунта Google.',
-      fix: 'Что сделать: нажмите «Войти через Google» ещё раз и выберите аккаунт.',
+      fix:
+          'Что сделать: нажмите «Войти через Google» ещё раз и выберите аккаунт.',
       raw: '',
     );
   }
@@ -157,10 +158,11 @@ String googleSignInUserMessage(Object error) {
 /// Полный текст (причина + исправление + raw) для диалога.
 String googleSignInErrorDetails(Object error) {
   final info = googleSignInErrorInfo(error);
-  final buf = StringBuffer()
-    ..writeln(info.cause)
-    ..writeln()
-    ..writeln(info.fix);
+  final buf =
+      StringBuffer()
+        ..writeln(info.cause)
+        ..writeln()
+        ..writeln(info.fix);
   if (info.raw.isNotEmpty) {
     buf
       ..writeln()

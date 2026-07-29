@@ -12,7 +12,9 @@ void showAppSnackBar(
   messenger.hideCurrentSnackBar();
   final bottom = MediaQuery.paddingOf(context).bottom;
   final short =
-      message.length > 120 ? '${message.substring(0, 117).trimRight()}…' : message;
+      message.length > 120
+          ? '${message.substring(0, 117).trimRight()}…'
+          : message;
 
   messenger.showSnackBar(
     SnackBar(
@@ -37,7 +39,8 @@ void showAppSnackBar(
                           ),
                           actions: [
                             TextButton(
-                              onPressed: () => Navigator.of(dialogContext).pop(),
+                              onPressed:
+                                  () => Navigator.of(dialogContext).pop(),
                               child: const Text('OK'),
                             ),
                           ],

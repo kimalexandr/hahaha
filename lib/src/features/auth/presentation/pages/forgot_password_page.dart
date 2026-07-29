@@ -97,43 +97,43 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
           child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Укажите email — мы отправим ссылку для сброса пароля.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Укажите email — мы отправим ссылку для сброса пароля.',
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
-                keyboardType: TextInputType.emailAddress,
-                autofillHints: const [AutofillHints.email],
-                validator: (value) {
-                  final v = value?.trim() ?? '';
-                  if (v.isEmpty || !v.contains('@')) {
-                    return 'Введите корректный email';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              if (_sending)
-                const Center(child: CircularProgressIndicator())
-              else
-                FilledButton(
-                  onPressed: _send,
-                  child: const Text('Отправить письмо для сброса'),
+                const SizedBox(height: 24),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  autofillHints: const [AutofillHints.email],
+                  validator: (value) {
+                    final v = value?.trim() ?? '';
+                    if (v.isEmpty || !v.contains('@')) {
+                      return 'Введите корректный email';
+                    }
+                    return null;
+                  },
                 ),
-            ],
+                const SizedBox(height: 24),
+                if (_sending)
+                  const Center(child: CircularProgressIndicator())
+                else
+                  FilledButton(
+                    onPressed: _send,
+                    child: const Text('Отправить письмо для сброса'),
+                  ),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }

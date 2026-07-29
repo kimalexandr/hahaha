@@ -150,133 +150,135 @@ class _SignInPageState extends State<SignInPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                      Text(
-                        'Eventa',
-                        style: Theme.of(context).textTheme.headlineLarge,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Вход в аккаунт',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 26),
-                      ElevatedButton.icon(
-                        onPressed: _signInWithGoogle,
-                        icon: const Icon(Icons.g_mobiledata),
-                        label: const Text('Войти через Google'),
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: _openRegister,
-                        child: const Text('Нет аккаунта? Зарегистрироваться'),
-                      ),
-                      const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          const Expanded(child: Divider()),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8.0,
-                            ),
-                            child: Text(
-                              'или email',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ),
-                          const Expanded(child: Divider()),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            TextFormField(
-                              controller: _emailController,
-                              decoration: const InputDecoration(
-                                labelText: 'Email',
-                              ),
-                              keyboardType: TextInputType.emailAddress,
-                              autofillHints: const [AutofillHints.email],
-                              validator: (value) {
-                                if (value == null || !value.contains('@')) {
-                                  return 'Введите корректный email';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            TextFormField(
-                              controller: _passwordController,
-                              decoration: InputDecoration(
-                                labelText: 'Пароль',
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePassword
-                                        ? Icons.visibility_outlined
-                                        : Icons.visibility_off_outlined,
-                                  ),
-                                  onPressed: () {
-                                    setState(
-                                      () =>
-                                          _obscurePassword = !_obscurePassword,
-                                    );
-                                  },
-                                ),
-                              ),
-                              obscureText: _obscurePassword,
-                              autofillHints: const [AutofillHints.password],
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Введите пароль';
-                                }
-                                return null;
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      if (_isLoading)
-                        const Center(child: CircularProgressIndicator())
-                      else ...[
-                        ElevatedButton(
-                          onPressed: _signInWithEmail,
-                          child: const Text('Войти'),
+                        Text(
+                          'Eventa',
+                          style: Theme.of(context).textTheme.headlineLarge,
+                          textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 8),
-                        if (appUsesFirebaseBackend)
-                          TextButton(
-                            onPressed: _openForgotPassword,
-                            child: const Text('Забыли пароль?'),
-                          )
-                        else
-                          Text(
-                            'Сброс пароля недоступен в демо-режиме',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodySmall?.copyWith(
-                              color:
-                                  Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                            ),
+                        Text(
+                          'Вход в аккаунт',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 26),
+                        ElevatedButton.icon(
+                          onPressed: _signInWithGoogle,
+                          icon: const Icon(Icons.g_mobiledata),
+                          label: const Text('Войти через Google'),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: _openRegister,
+                          child: const Text('Нет аккаунта? Зарегистрироваться'),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            const Expanded(child: Divider()),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                              ),
+                              child: Text(
+                                'или email',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ),
+                            const Expanded(child: Divider()),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
+                              TextFormField(
+                                controller: _emailController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Email',
+                                ),
+                                keyboardType: TextInputType.emailAddress,
+                                autofillHints: const [AutofillHints.email],
+                                validator: (value) {
+                                  if (value == null || !value.contains('@')) {
+                                    return 'Введите корректный email';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              TextFormField(
+                                controller: _passwordController,
+                                decoration: InputDecoration(
+                                  labelText: 'Пароль',
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
+                                    ),
+                                    onPressed: () {
+                                      setState(
+                                        () =>
+                                            _obscurePassword =
+                                                !_obscurePassword,
+                                      );
+                                    },
+                                  ),
+                                ),
+                                obscureText: _obscurePassword,
+                                autofillHints: const [AutofillHints.password],
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Введите пароль';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        if (_isLoading)
+                          const Center(child: CircularProgressIndicator())
+                        else ...[
+                          ElevatedButton(
+                            onPressed: _signInWithEmail,
+                            child: const Text('Войти'),
+                          ),
+                          const SizedBox(height: 8),
+                          if (appUsesFirebaseBackend)
+                            TextButton(
+                              onPressed: _openForgotPassword,
+                              child: const Text('Забыли пароль?'),
+                            )
+                          else
+                            Text(
+                              'Сброс пароля недоступен в демо-режиме',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
         ),
       ),
     );

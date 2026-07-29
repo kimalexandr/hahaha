@@ -543,9 +543,9 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _openChangePassword() async {
-    final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const ChangePasswordPage()),
-    );
+    final changed = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => const ChangePasswordPage()));
     if (changed == true && mounted) {
       await _loadAccount();
     }
@@ -884,23 +884,20 @@ class _ProfilePageState extends State<ProfilePage> {
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.phone_iphone),
                 title: const Text('Телефон'),
-                subtitle: Text(
-                  () {
-                    final phone =
-                        _account.phoneNumber ??
-                        widget.initialProfile.phoneNumber;
-                    if (phone == null || phone.isEmpty) {
-                      return widget.initialProfile.phoneVerified
-                          ? 'Подтверждён'
-                          : 'Не подтверждён';
-                    }
-                    final status =
-                        widget.initialProfile.phoneVerified
-                            ? 'подтверждён'
-                            : 'не подтверждён';
-                    return '$phone · $status';
-                  }(),
-                ),
+                subtitle: Text(() {
+                  final phone =
+                      _account.phoneNumber ?? widget.initialProfile.phoneNumber;
+                  if (phone == null || phone.isEmpty) {
+                    return widget.initialProfile.phoneVerified
+                        ? 'Подтверждён'
+                        : 'Не подтверждён';
+                  }
+                  final status =
+                      widget.initialProfile.phoneVerified
+                          ? 'подтверждён'
+                          : 'не подтверждён';
+                  return '$phone · $status';
+                }()),
                 trailing:
                     widget.initialProfile.phoneVerified
                         ? const Icon(Icons.verified, color: Colors.green)

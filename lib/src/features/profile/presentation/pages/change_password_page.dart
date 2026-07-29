@@ -91,7 +91,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   ),
                   validator:
                       (v) =>
-                          (v == null || v.isEmpty) ? 'Введите текущий пароль' : null,
+                          (v == null || v.isEmpty)
+                              ? 'Введите текущий пароль'
+                              : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
