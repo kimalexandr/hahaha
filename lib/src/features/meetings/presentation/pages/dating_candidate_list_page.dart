@@ -18,7 +18,8 @@ class DatingCandidateListPage extends StatefulWidget {
   final Meeting meeting;
 
   @override
-  State<DatingCandidateListPage> createState() => _DatingCandidateListPageState();
+  State<DatingCandidateListPage> createState() =>
+      _DatingCandidateListPageState();
 }
 
 class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
@@ -67,10 +68,12 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
     final views = <_DatingCandidateView>[];
     for (final person in people) {
       if (excluded.contains(person.ownerId)) continue;
-      if (person.birthDate == null || calculateAge(person.birthDate!) < 18) continue;
+      if (person.birthDate == null || calculateAge(person.birthDate!) < 18)
+        continue;
       if (_genderFilter != 'any' && person.gender != _genderFilter) continue;
       final age = calculateAge(person.birthDate!);
-      if (age < _ageFilter.start.round() || age > _ageFilter.end.round()) continue;
+      if (age < _ageFilter.start.round() || age > _ageFilter.end.round())
+        continue;
       final interested = await _interestStorage.hasInterest(
         meetingId: widget.meeting.id,
         fromUserId: uid,
@@ -123,7 +126,9 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
     );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Приглашение отправлено: ${candidate.profile.name}')),
+      SnackBar(
+        content: Text('Приглашение отправлено: ${candidate.profile.name}'),
+      ),
     );
     await _load();
   }
@@ -199,7 +204,8 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
                               max: 60,
                               divisions: 42,
                               values: _ageFilter,
-                              onChanged: (value) => setState(() => _ageFilter = value),
+                              onChanged:
+                                  (value) => setState(() => _ageFilter = value),
                               onChangeEnd: (_) => _load(),
                             ),
                             Align(
@@ -218,20 +224,30 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
                   Expanded(
                     child:
                         _candidates.isEmpty
-                            ? const Center(child: Text('Подходящие кандидаты пока не найдены'))
+                            ? const Center(
+                              child: Text(
+                                'Подходящие кандидаты пока не найдены',
+                              ),
+                            )
                             : ListView.separated(
                               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                               itemCount: _candidates.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 10),
+                              separatorBuilder:
+                                  (_, __) => const SizedBox(height: 10),
                               itemBuilder: (_, index) {
                                 final item = _candidates[index];
                                 final mainPhoto =
                                     item.profile.profilePhotoUrls.isNotEmpty
-                                        ? item.profile.profilePhotoUrls[item.profile
+                                        ? item.profile.profilePhotoUrls[item
+                                            .profile
                                             .mainPhotoIndex
                                             .clamp(
                                               0,
-                                              item.profile.profilePhotoUrls.length - 1,
+                                              item
+                                                      .profile
+                                                      .profilePhotoUrls
+                                                      .length -
+                                                  1,
                                             )]
                                         : null;
                                 return Card(
@@ -242,11 +258,14 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
                                               child: Text(
                                                 item.profile.name.isEmpty
                                                     ? '?'
-                                                    : item.profile.name[0].toUpperCase(),
+                                                    : item.profile.name[0]
+                                                        .toUpperCase(),
                                               ),
                                             )
                                             : CircleAvatar(
-                                              backgroundImage: NetworkImage(mainPhoto),
+                                              backgroundImage: NetworkImage(
+                                                mainPhoto,
+                                              ),
                                             ),
                                     title: Text(
                                       '${item.profile.name} · ${item.scorePercent}%',
@@ -258,10 +277,15 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
                                     isThreeLine: true,
                                     trailing:
                                         item.interested
-                                            ? const Icon(Icons.favorite, color: Colors.red)
+                                            ? const Icon(
+                                              Icons.favorite,
+                                              color: Colors.red,
+                                            )
                                             : IconButton(
                                               onPressed: () => _invite(item),
-                                              icon: const Icon(Icons.favorite_border),
+                                              icon: const Icon(
+                                                Icons.favorite_border,
+                                              ),
                                             ),
                                   ),
                                 );

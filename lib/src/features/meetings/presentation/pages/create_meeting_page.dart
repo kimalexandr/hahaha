@@ -10,8 +10,16 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class CreateMeetingPage extends StatefulWidget {
-  const CreateMeetingPage({super.key, this.venue, this.linkedEvent, this.initialKind})
-    : assert(venue != null || linkedEvent != null || initialKind == MeetingKind.dating);
+  const CreateMeetingPage({
+    super.key,
+    this.venue,
+    this.linkedEvent,
+    this.initialKind,
+  }) : assert(
+         venue != null ||
+             linkedEvent != null ||
+             initialKind == MeetingKind.dating,
+       );
 
   final Venue? venue;
   final Event? linkedEvent;
@@ -165,16 +173,22 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
                 : (event != null ? MeetingKind.event : MeetingKind.venue),
         linkedEventId: event?.id,
         linkedEventTitle: event?.title,
-        maxParticipants: _meetingKind == MeetingKind.dating ? 2 : _maxParticipants,
+        maxParticipants:
+            _meetingKind == MeetingKind.dating ? 2 : _maxParticipants,
         currentParticipantCount: 1,
         participants: [uid],
         participantStatus: {uid: 'joined'},
         createdAt: DateTime.now(),
         desiredMinAge:
-            _meetingKind == MeetingKind.dating ? _datingAgeRange.start.round() : null,
+            _meetingKind == MeetingKind.dating
+                ? _datingAgeRange.start.round()
+                : null,
         desiredMaxAge:
-            _meetingKind == MeetingKind.dating ? _datingAgeRange.end.round() : null,
-        desiredGender: _meetingKind == MeetingKind.dating ? _datingLookingFor : null,
+            _meetingKind == MeetingKind.dating
+                ? _datingAgeRange.end.round()
+                : null,
+        desiredGender:
+            _meetingKind == MeetingKind.dating ? _datingLookingFor : null,
       );
       final meeting = await _repo.create(draft);
       await _repo.upsertLocalMirror(meeting);

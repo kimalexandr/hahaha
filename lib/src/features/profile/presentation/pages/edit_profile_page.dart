@@ -80,7 +80,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
     if (_birthDate == null || calculateAge(_birthDate!) < 18) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Для доступа к дейтингу нужен возраст 18+')),
+        const SnackBar(
+          content: Text('Для доступа к дейтингу нужен возраст 18+'),
+        ),
       );
       return;
     }
@@ -188,9 +190,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         value: _gender,
                         decoration: const InputDecoration(labelText: 'Пол'),
                         items: const [
-                          DropdownMenuItem(value: 'male', child: Text('Мужской')),
-                          DropdownMenuItem(value: 'female', child: Text('Женский')),
-                          DropdownMenuItem(value: 'other', child: Text('Другой')),
+                          DropdownMenuItem(
+                            value: 'male',
+                            child: Text('Мужской'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'female',
+                            child: Text('Женский'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'other',
+                            child: Text('Другой'),
+                          ),
                         ],
                         onChanged: (value) => setState(() => _gender = value),
                         validator:
@@ -211,15 +222,25 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         value: _lookingFor,
-                        decoration: const InputDecoration(labelText: 'Кого ищу'),
+                        decoration: const InputDecoration(
+                          labelText: 'Кого ищу',
+                        ),
                         items: const [
-                          DropdownMenuItem(value: 'male', child: Text('Мужчины')),
-                          DropdownMenuItem(value: 'female', child: Text('Женщины')),
+                          DropdownMenuItem(
+                            value: 'male',
+                            child: Text('Мужчины'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'female',
+                            child: Text('Женщины'),
+                          ),
                           DropdownMenuItem(value: 'any', child: Text('Любой')),
                         ],
-                        onChanged: (value) => setState(() => _lookingFor = value),
+                        onChanged:
+                            (value) => setState(() => _lookingFor = value),
                         validator:
-                            (value) => value == null ? 'Выберите предпочтение' : null,
+                            (value) =>
+                                value == null ? 'Выберите предпочтение' : null,
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -239,7 +260,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           ),
                           const SizedBox(width: 8),
                           IconButton(
-                            onPressed: _photoUrls.length >= 10 ? null : _addPhotoUrl,
+                            onPressed:
+                                _photoUrls.length >= 10 ? null : _addPhotoUrl,
                             icon: const Icon(Icons.add_a_photo_outlined),
                           ),
                         ],
@@ -250,11 +272,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             itemCount: _photoUrls.length,
-                            separatorBuilder: (_, __) => const SizedBox(width: 8),
+                            separatorBuilder:
+                                (_, __) => const SizedBox(width: 8),
                             itemBuilder: (_, index) {
                               final isMain = _mainPhotoIndex == index;
                               return GestureDetector(
-                                onTap: () => setState(() => _mainPhotoIndex = index),
+                                onTap:
+                                    () =>
+                                        setState(() => _mainPhotoIndex = index),
                                 child: Stack(
                                   children: [
                                     ClipRRect(
@@ -270,7 +295,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                               height: 84,
                                               color: Colors.grey.shade300,
                                               alignment: Alignment.center,
-                                              child: const Icon(Icons.image_not_supported),
+                                              child: const Icon(
+                                                Icons.image_not_supported,
+                                              ),
                                             ),
                                       ),
                                     ),
@@ -278,7 +305,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                       const Positioned(
                                         right: 4,
                                         top: 4,
-                                        child: Icon(Icons.star, color: Colors.amber),
+                                        child: Icon(
+                                          Icons.star,
+                                          color: Colors.amber,
+                                        ),
                                       ),
                                   ],
                                 ),
@@ -298,11 +328,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () async {
-                          final updated = await Navigator.of(context).push<UserProfile>(
-                            MaterialPageRoute(builder: (_) => const PlacesQuizPage()),
+                          final updated = await Navigator.of(
+                            context,
+                          ).push<UserProfile>(
+                            MaterialPageRoute(
+                              builder: (_) => const PlacesQuizPage(),
+                            ),
                           );
                           if (updated == null || !mounted) return;
-                          setState(() => _quizAnswers = updated.placesQuizAnswers);
+                          setState(
+                            () => _quizAnswers = updated.placesQuizAnswers,
+                          );
                         },
                       ),
                       const SizedBox(height: 16),

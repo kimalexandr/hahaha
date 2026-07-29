@@ -38,7 +38,12 @@ const List<Map<String, Object>> placesQuizQuestions = [
   {
     'id': 'q4_weekend',
     'text': 'Идеальные выходные',
-    'options': ['поездка за город', 'городской маршрут', 'домашний отдых', 'спонтанный план'],
+    'options': [
+      'поездка за город',
+      'городской маршрут',
+      'домашний отдых',
+      'спонтанный план',
+    ],
   },
   {
     'id': 'q5_music',
@@ -58,7 +63,12 @@ const List<Map<String, Object>> placesQuizQuestions = [
   {
     'id': 'q8_style',
     'text': 'Стиль общения на старте',
-    'options': ['много юмора', 'спокойно и глубоко', 'легко и быстро', 'зависит от человека'],
+    'options': [
+      'много юмора',
+      'спокойно и глубоко',
+      'легко и быстро',
+      'зависит от человека',
+    ],
   },
 ];
 
@@ -72,7 +82,8 @@ String calculateZodiacSign(DateTime birthDate) {
   if ((month == 7 && day >= 23) || (month == 8 && day <= 22)) return 'leo';
   if ((month == 8 && day >= 23) || (month == 9 && day <= 22)) return 'virgo';
   if ((month == 9 && day >= 23) || (month == 10 && day <= 22)) return 'libra';
-  if ((month == 10 && day >= 23) || (month == 11 && day <= 21)) return 'scorpio';
+  if ((month == 10 && day >= 23) || (month == 11 && day <= 21))
+    return 'scorpio';
   if ((month == 11 && day >= 22) || (month == 12 && day <= 21)) {
     return 'sagittarius';
   }

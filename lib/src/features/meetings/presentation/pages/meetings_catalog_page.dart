@@ -54,7 +54,8 @@ class _MeetingsCatalogPageState extends State<MeetingsCatalogPage> {
           final created = await Navigator.of(context).push<Meeting>(
             MaterialPageRoute(
               builder:
-                  (_) => const CreateMeetingPage(initialKind: MeetingKind.dating),
+                  (_) =>
+                      const CreateMeetingPage(initialKind: MeetingKind.dating),
             ),
           );
           if (created == null) return;
@@ -157,7 +158,8 @@ class _MeetingsCatalogPageState extends State<MeetingsCatalogPage> {
                                 MaterialPageRoute(
                                   builder:
                                       (_) =>
-                                          meeting.meetingKind == MeetingKind.dating
+                                          meeting.meetingKind ==
+                                                  MeetingKind.dating
                                               ? DatingCandidateListPage(
                                                 meeting: meeting,
                                               )
