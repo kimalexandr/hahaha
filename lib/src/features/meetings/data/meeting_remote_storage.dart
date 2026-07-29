@@ -41,6 +41,9 @@ class MeetingRemoteStorage {
       'status': MeetingStatus.open.name,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'desiredMinAge': meeting.desiredMinAge,
+      'desiredMaxAge': meeting.desiredMaxAge,
+      'desiredGender': meeting.desiredGender,
     });
     batch.set(ref.collection('participants').doc(creatorId), {
       'status': 'joined',
@@ -70,6 +73,9 @@ class MeetingRemoteStorage {
       participantStatus: {creatorId: 'joined'},
       status: MeetingStatus.open,
       createdAt: meeting.createdAt,
+      desiredMinAge: meeting.desiredMinAge,
+      desiredMaxAge: meeting.desiredMaxAge,
+      desiredGender: meeting.desiredGender,
     );
   }
 

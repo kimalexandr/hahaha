@@ -1,6 +1,7 @@
 import 'package:eventa/src/features/meetings/data/campaign_repository.dart';
 import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
 import 'package:eventa/src/features/meetings/domain/entities/event_meetup_campaign.dart';
+import 'package:eventa/src/features/meetings/domain/dating_rules.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
 import 'package:eventa/src/features/meetings/presentation/pages/campaign_detail_page.dart';
 import 'package:eventa/src/features/meetings/presentation/pages/create_meeting_page.dart';
@@ -14,6 +15,7 @@ import 'package:eventa/src/features/home/domain/entities/event.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 import 'package:eventa/src/features/profile/domain/profile_interest_catalog.dart';
 import 'package:eventa/src/features/profile/presentation/pages/phone_verify_page.dart';
+import 'package:eventa/src/features/profile/presentation/pages/places_quiz_page.dart';
 import 'package:eventa/src/features/push/presentation/pages/notification_settings_page.dart';
 import 'package:eventa/src/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:eventa/src/features/auth/presentation/bloc/auth_event.dart';
@@ -346,6 +348,14 @@ class _ProfilePageState extends State<ProfilePage> {
   String _role = 'user';
   late Set<String> _selectedInterests;
   bool _readyForMeeting = false;
+  String? _gender;
+  String? _lookingFor;
+  DateTime? _birthDate;
+  String? _zodiacSign;
+  late Map<String, String> _quizAnswers;
+  late List<String> _photoUrls;
+  int _mainPhotoIndex = 0;
+  final _photoController = TextEditingController();
 
   @override
   void initState() {
@@ -356,6 +366,16 @@ class _ProfilePageState extends State<ProfilePage> {
     _role = widget.initialProfile.role;
     _selectedInterests = {...widget.initialProfile.interests};
     _readyForMeeting = widget.initialProfile.readyForMeeting;
+    _gender = widget.initialProfile.gender;
+    _lookingFor = widget.initialProfile.lookingFor;
+    _birthDate = widget.initialProfile.birthDate;
+    _zodiacSign = widget.initialProfile.zodiacSign;
+    _quizAnswers = Map.of(widget.initialProfile.placesQuizAnswers);
+    _photoUrls = List.of(widget.initialProfile.profilePhotoUrls);
+    _mainPhotoIndex = widget.initialProfile.mainPhotoIndex.clamp(
+      0,
+      _photoUrls.isEmpty ? 0 : _photoUrls.length - 1,
+    );
   }
 
   @override
@@ -363,7 +383,33 @@ class _ProfilePageState extends State<ProfilePage> {
     _nameController.dispose();
     _bioController.dispose();
     _cityController.dispose();
+    _photoController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickBirthDate() async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _birthDate ?? DateTime(now.year - 22, now.month, now.day),
+      firstDate: DateTime(now.year - 80, 1, 1),
+      lastDate: DateTime(now.year - 18, now.month, now.day),
+    );
+    if (date == null) return;
+    setState(() {
+      _birthDate = date;
+      _zodiacSign = calculateZodiacSign(date);
+    });
+  }
+
+  void _addPhotoUrl() {
+    final url = _photoController.text.trim();
+    if (url.isEmpty || _photoUrls.length >= 10) return;
+    setState(() {
+      _photoUrls.add(url);
+      _photoController.clear();
+      if (_photoUrls.length == 1) _mainPhotoIndex = 0;
+    });
   }
 
   void _saveProfile() {
@@ -381,6 +427,13 @@ class _ProfilePageState extends State<ProfilePage> {
         city: _cityController.text.trim(),
         interests: _selectedInterests.toList()..sort(),
         readyForMeeting: _readyForMeeting,
+        gender: _gender,
+        birthDate: _birthDate,
+        lookingFor: _lookingFor,
+        zodiacSign: _zodiacSign,
+        placesQuizAnswers: _quizAnswers,
+        profilePhotoUrls: _photoUrls,
+        mainPhotoIndex: _mainPhotoIndex,
       ),
     );
   }
@@ -402,6 +455,13 @@ class _ProfilePageState extends State<ProfilePage> {
           readyForMeeting: _readyForMeeting,
           phoneVerified: true,
           phoneVerifiedAt: DateTime.now(),
+          gender: _gender,
+          birthDate: _birthDate,
+          lookingFor: _lookingFor,
+          zodiacSign: _zodiacSign,
+          placesQuizAnswers: _quizAnswers,
+          profilePhotoUrls: _photoUrls,
+          mainPhotoIndex: _mainPhotoIndex,
         ),
       );
     }
@@ -413,6 +473,27 @@ class _ProfilePageState extends State<ProfilePage> {
       appBar: AppBar(
         title: Row(
           children: [
+            CircleAvatar(
+              radius: 14,
+              backgroundImage:
+                  _photoUrls.isEmpty
+                      ? null
+                      : NetworkImage(
+                        _photoUrls[_mainPhotoIndex.clamp(
+                          0,
+                          _photoUrls.length - 1,
+                        )],
+                      ),
+              child:
+                  _photoUrls.isEmpty
+                      ? Text(
+                        _nameController.text.isEmpty
+                            ? '?'
+                            : _nameController.text[0].toUpperCase(),
+                      )
+                      : null,
+            ),
+            const SizedBox(width: 8),
             const Text('Профиль'),
             if (widget.initialProfile.phoneVerified) ...[
               const SizedBox(width: 8),
@@ -443,6 +524,40 @@ class _ProfilePageState extends State<ProfilePage> {
             controller: _bioController,
             decoration: const InputDecoration(labelText: 'О себе'),
             maxLines: 3,
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _gender,
+            decoration: const InputDecoration(labelText: 'Пол'),
+            items: const [
+              DropdownMenuItem(value: 'male', child: Text('Мужской')),
+              DropdownMenuItem(value: 'female', child: Text('Женский')),
+              DropdownMenuItem(value: 'other', child: Text('Другой')),
+            ],
+            onChanged: (value) => setState(() => _gender = value),
+          ),
+          const SizedBox(height: 12),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Дата рождения'),
+            subtitle: Text(
+              _birthDate == null
+                  ? 'Не указана'
+                  : '${_birthDate!.day}.${_birthDate!.month}.${_birthDate!.year} · ${zodiacRuLabel(_zodiacSign)}',
+            ),
+            trailing: const Icon(Icons.calendar_today_outlined),
+            onTap: _pickBirthDate,
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            value: _lookingFor,
+            decoration: const InputDecoration(labelText: 'Кого ищу'),
+            items: const [
+              DropdownMenuItem(value: 'male', child: Text('Мужчины')),
+              DropdownMenuItem(value: 'female', child: Text('Женщины')),
+              DropdownMenuItem(value: 'any', child: Text('Любой')),
+            ],
+            onChanged: (value) => setState(() => _lookingFor = value),
           ),
           const SizedBox(height: 12),
           // ignore: deprecated_member_use — value устарел в новых SDK; initialValue недоступен на старых Flutter.
@@ -491,6 +606,82 @@ class _ProfilePageState extends State<ProfilePage> {
             value: _readyForMeeting,
             onChanged: (value) => setState(() => _readyForMeeting = value),
           ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.quiz_outlined),
+            title: const Text('Квиз по местам'),
+            subtitle: Text(
+              _quizAnswers.isEmpty
+                  ? 'Не заполнен'
+                  : 'Заполнено: ${_quizAnswers.length} ответов',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              final updated = await Navigator.of(context).push<UserProfile>(
+                MaterialPageRoute(builder: (_) => const PlacesQuizPage()),
+              );
+              if (updated == null || !mounted) return;
+              setState(() => _quizAnswers = updated.placesQuizAnswers);
+            },
+          ),
+          const SizedBox(height: 8),
+          Text('Фото (до 10)', style: Theme.of(context).textTheme.titleMedium),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _photoController,
+                  decoration: const InputDecoration(hintText: 'URL фото'),
+                ),
+              ),
+              IconButton(
+                onPressed: _photoUrls.length >= 10 ? null : _addPhotoUrl,
+                icon: const Icon(Icons.add_a_photo),
+              ),
+            ],
+          ),
+          if (_photoUrls.isNotEmpty)
+            SizedBox(
+              height: 86,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _photoUrls.length,
+                itemBuilder: (_, index) {
+                  return GestureDetector(
+                    onTap: () => setState(() => _mainPhotoIndex = index),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color:
+                              _mainPhotoIndex == index
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.transparent,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          _photoUrls[index],
+                          width: 78,
+                          height: 78,
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (_, __, ___) => Container(
+                                width: 78,
+                                height: 78,
+                                color: Colors.grey.shade300,
+                                child: const Icon(Icons.broken_image_outlined),
+                              ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           if (!widget.initialProfile.phoneVerified)
             ListTile(
               contentPadding: EdgeInsets.zero,

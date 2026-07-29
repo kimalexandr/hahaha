@@ -35,6 +35,11 @@ class HomeRemoteStorage {
     return UserProfile.fromMap(doc.data()!);
   }
 
+  Future<List<UserProfile>> readProfiles({int limit = 200}) async {
+    final snapshot = await _profilesRef.limit(limit).get();
+    return snapshot.docs.map((doc) => UserProfile.fromMap(doc.data())).toList();
+  }
+
   Future<void> saveProfile(UserProfile profile) async {
     await _profilesRef
         .doc(profile.ownerId)

@@ -1,5 +1,7 @@
 import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
+import 'package:eventa/src/features/meetings/presentation/pages/create_meeting_page.dart';
+import 'package:eventa/src/features/meetings/presentation/pages/dating_candidate_list_page.dart';
 import 'package:eventa/src/features/meetings/presentation/pages/meeting_candidates_page.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -47,6 +49,20 @@ class _MeetingsCatalogPageState extends State<MeetingsCatalogPage> {
     final items = _filtered;
     return Scaffold(
       appBar: AppBar(title: const Text('Встречи')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final created = await Navigator.of(context).push<Meeting>(
+            MaterialPageRoute(
+              builder:
+                  (_) => const CreateMeetingPage(initialKind: MeetingKind.dating),
+            ),
+          );
+          if (created == null) return;
+          _load();
+        },
+        icon: const Icon(Icons.favorite_outline),
+        label: const Text('Дейтинг 1:1'),
+      ),
       body: Column(
         children: [
           SingleChildScrollView(
@@ -140,9 +156,14 @@ class _MeetingsCatalogPageState extends State<MeetingsCatalogPage> {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder:
-                                      (_) => MeetingCandidatesPage(
-                                        meeting: meeting,
-                                      ),
+                                      (_) =>
+                                          meeting.meetingKind == MeetingKind.dating
+                                              ? DatingCandidateListPage(
+                                                meeting: meeting,
+                                              )
+                                              : MeetingCandidatesPage(
+                                                meeting: meeting,
+                                              ),
                                 ),
                               );
                             },

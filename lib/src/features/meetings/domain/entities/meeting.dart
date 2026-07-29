@@ -72,9 +72,19 @@ enum MeetingPurpose {
 
 enum MeetingKind {
   venue,
-  event;
+  event,
+  dating;
 
-  String get labelRu => this == MeetingKind.venue ? 'У заведения' : 'К событию';
+  String get labelRu {
+    switch (this) {
+      case MeetingKind.venue:
+        return 'У заведения';
+      case MeetingKind.event:
+        return 'К событию';
+      case MeetingKind.dating:
+        return 'Дейтинг';
+    }
+  }
 
   static MeetingKind fromString(String? value) {
     return MeetingKind.values.firstWhere(
@@ -131,6 +141,9 @@ class Meeting {
   final MeetingStatus status;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final int? desiredMinAge;
+  final int? desiredMaxAge;
+  final String? desiredGender;
 
   const Meeting({
     required this.id,
@@ -154,6 +167,9 @@ class Meeting {
     this.status = MeetingStatus.open,
     required this.createdAt,
     this.updatedAt,
+    this.desiredMinAge,
+    this.desiredMaxAge,
+    this.desiredGender,
   });
 
   String get creatorId => hostUserId;
@@ -168,6 +184,9 @@ class Meeting {
     Map<String, String>? participantStatus,
     MeetingStatus? status,
     DateTime? updatedAt,
+    int? desiredMinAge,
+    int? desiredMaxAge,
+    String? desiredGender,
   }) {
     return Meeting(
       id: id,
@@ -192,6 +211,9 @@ class Meeting {
       status: status ?? this.status,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      desiredMinAge: desiredMinAge,
+      desiredMaxAge: desiredMaxAge,
+      desiredGender: desiredGender,
     );
   }
 
@@ -231,6 +253,9 @@ class Meeting {
       'status': status == MeetingStatus.matched ? 'full' : status.name,
       'createdAt': createdAt.toIso8601String(),
       if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
+      if (desiredMinAge != null) 'desiredMinAge': desiredMinAge,
+      if (desiredMaxAge != null) 'desiredMaxAge': desiredMaxAge,
+      if (desiredGender != null) 'desiredGender': desiredGender,
     };
   }
 
@@ -307,6 +332,9 @@ class Meeting {
           map['updatedAt'] is DateTime
               ? map['updatedAt'] as DateTime
               : DateTime.tryParse(map['updatedAt']?.toString() ?? ''),
+      desiredMinAge: (map['desiredMinAge'] as num?)?.toInt(),
+      desiredMaxAge: (map['desiredMaxAge'] as num?)?.toInt(),
+      desiredGender: map['desiredGender'] as String?,
     );
   }
 }

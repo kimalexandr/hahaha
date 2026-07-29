@@ -1,5 +1,6 @@
 import 'package:eventa/src/features/home/domain/entities/event.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
+import 'package:eventa/src/features/meetings/presentation/pages/dating_candidate_list_page.dart';
 import 'package:eventa/src/features/meetings/presentation/pages/meeting_candidates_page.dart';
 import 'package:eventa/src/features/venues/domain/entities/venue.dart';
 import 'package:flutter/material.dart';
@@ -69,7 +70,11 @@ class MeetingCreatedPage extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => MeetingCandidatesPage(meeting: meeting),
+                    builder:
+                        (_) =>
+                            meeting.meetingKind == MeetingKind.dating
+                                ? DatingCandidateListPage(meeting: meeting)
+                                : MeetingCandidatesPage(meeting: meeting),
                   ),
                 );
               },
