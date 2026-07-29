@@ -89,89 +89,91 @@ class _PlacesQuizPageState extends State<PlacesQuizPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-            LinearProgressIndicator(value: progress),
-            const SizedBox(height: 12),
-            Text(
-              'Вопрос ${_step + 1} из ${placesQuizQuestions.length}',
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Можно выбрать несколько вариантов',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              LinearProgressIndicator(value: progress),
+              const SizedBox(height: 12),
+              Text(
+                'Вопрос ${_step + 1} из ${placesQuizQuestions.length}',
+                style: Theme.of(context).textTheme.labelLarge,
               ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  _questionText,
-                  style: Theme.of(context).textTheme.titleLarge,
+              const SizedBox(height: 4),
+              Text(
+                'Можно выбрать несколько вариантов',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: ListView.separated(
-                itemCount: _options.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (_, index) {
-                  final option = _options[index];
-                  final isOn = selected.contains(option);
-                  return CheckboxListTile(
-                    value: isOn,
-                    title: Text(option),
-                    controlAffinity: ListTileControlAffinity.leading,
-                    onChanged: (value) => _toggle(option, value == true),
-                  );
-                },
-              ),
-            ),
-            if (selected.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  'Выбрано: ${selected.length}',
-                  style: Theme.of(context).textTheme.labelMedium,
+              const SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    _questionText,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                 ),
               ),
-            Row(
-              children: [
-                if (_step > 0)
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: _options.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (_, index) {
+                    final option = _options[index];
+                    final isOn = selected.contains(option);
+                    return CheckboxListTile(
+                      value: isOn,
+                      title: Text(option),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      onChanged: (value) => _toggle(option, value == true),
+                    );
+                  },
+                ),
+              ),
+              if (selected.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'Выбрано: ${selected.length}',
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
+                ),
+              Row(
+                children: [
+                  if (_step > 0)
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => setState(() => _step -= 1),
+                        child: const Text('Назад'),
+                      ),
+                    ),
+                  if (_step > 0) const SizedBox(width: 10),
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => setState(() => _step -= 1),
-                      child: const Text('Назад'),
+                    child: FilledButton(
+                      onPressed:
+                          selected.isEmpty || _saving
+                              ? null
+                              : () {
+                                if (_isLast) {
+                                  _finish();
+                                } else {
+                                  setState(() => _step += 1);
+                                }
+                              },
+                      child:
+                          _saving
+                              ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : Text(_isLast ? 'Завершить' : 'Далее'),
                     ),
                   ),
-                if (_step > 0) const SizedBox(width: 10),
-                Expanded(
-                  child: FilledButton(
-                    onPressed:
-                        selected.isEmpty || _saving
-                            ? null
-                            : () {
-                              if (_isLast) {
-                                _finish();
-                              } else {
-                                setState(() => _step += 1);
-                              }
-                            },
-                    child:
-                        _saving
-                            ? const SizedBox(
-                              height: 18,
-                              width: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                            : Text(_isLast ? 'Завершить' : 'Далее'),
-                  ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
           ),
         ),
       ),

@@ -561,304 +561,314 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       body: SafeArea(
         child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-        children: [
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Имя'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _cityController,
-            decoration: const InputDecoration(labelText: 'Город'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _bioController,
-            decoration: const InputDecoration(labelText: 'О себе'),
-            maxLines: 3,
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: _gender,
-            decoration: const InputDecoration(labelText: 'Пол'),
-            items: const [
-              DropdownMenuItem(value: 'male', child: Text('Мужской')),
-              DropdownMenuItem(value: 'female', child: Text('Женский')),
-              DropdownMenuItem(value: 'other', child: Text('Другой')),
-            ],
-            onChanged: (value) => setState(() => _gender = value),
-          ),
-          const SizedBox(height: 12),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Дата рождения'),
-            subtitle: Text(
-              _birthDate == null
-                  ? 'Не указана'
-                  : '${_birthDate!.day}.${_birthDate!.month}.${_birthDate!.year} · ${zodiacRuLabel(_zodiacSign)}',
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: 'Имя'),
             ),
-            trailing: const Icon(Icons.calendar_today_outlined),
-            onTap: _pickBirthDate,
-          ),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            value: _lookingFor,
-            decoration: const InputDecoration(labelText: 'Кого ищу'),
-            items: const [
-              DropdownMenuItem(value: 'male', child: Text('Мужчины')),
-              DropdownMenuItem(value: 'female', child: Text('Женщины')),
-              DropdownMenuItem(value: 'any', child: Text('Любой')),
-            ],
-            onChanged: (value) => setState(() => _lookingFor = value),
-          ),
-          const SizedBox(height: 12),
-          // ignore: deprecated_member_use — value устарел в новых SDK; initialValue недоступен на старых Flutter.
-          DropdownButtonFormField<String>(
-            value: _role,
-            decoration: const InputDecoration(labelText: 'Роль'),
-            items: const [
-              DropdownMenuItem(value: 'user', child: Text('Пользователь')),
-              DropdownMenuItem(value: 'organizer', child: Text('Организатор')),
-            ],
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() {
-                _role = value;
-              });
-            },
-          ),
-          const SizedBox(height: 16),
-          Text('Интересы', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children:
-                ProfileInterestCatalog.all.map((interest) {
-                  final selected = _selectedInterests.contains(interest);
-                  return FilterChip(
-                    label: Text(interest),
-                    selected: selected,
-                    onSelected: (value) {
-                      setState(() {
-                        if (value) {
-                          _selectedInterests.add(interest);
-                        } else {
-                          _selectedInterests.remove(interest);
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
-          ),
-          const SizedBox(height: 8),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Готов к встречам'),
-            value: _readyForMeeting,
-            onChanged: (value) => setState(() => _readyForMeeting = value),
-          ),
-          const SizedBox(height: 8),
-          AccountBadges(profile: widget.initialProfile),
-          const SizedBox(height: 8),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    widget.initialProfile.hasActivePremium
-                        ? 'Premium активен'
-                        : 'Бесплатный аккаунт',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    widget.initialProfile.hasActivePremium
-                        ? 'Безлимит приглашений и создания групп'
-                        : 'Осталось на неделю: $_invitesLeft приглашений, $_createsLeft групп',
-                  ),
-                  const SizedBox(height: 10),
-                  if (!widget.initialProfile.hasActivePremium)
-                    FilledButton.icon(
-                      onPressed: () async {
-                        final nav = Navigator.of(context);
-                        final bought = await openPremiumPaywall(context);
-                        if (!bought || !mounted) return;
-                        final updated = widget.initialProfile.copyWith(
-                          name: _nameController.text.trim(),
-                          bio: _bioController.text.trim(),
-                          role: _role,
-                          city: _cityController.text.trim(),
-                          interests: _selectedInterests.toList()..sort(),
-                          readyForMeeting: _readyForMeeting,
-                          gender: _gender,
-                          birthDate: _birthDate,
-                          lookingFor: _lookingFor,
-                          zodiacSign: _zodiacSign,
-                          placesQuizAnswers: _quizAnswers,
-                          profilePhotoUrls: _photoUrls,
-                          mainPhotoIndex: _mainPhotoIndex,
-                          isPremium: true,
-                          premiumUntil: DateTime.now().add(
-                            const Duration(days: 30),
-                          ),
-                        );
-                        nav.pop(updated);
-                      },
-                      icon: const Icon(Icons.workspace_premium),
-                      label: const Text('Купить Premium'),
-                    ),
-                ],
-              ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _cityController,
+              decoration: const InputDecoration(labelText: 'Город'),
             ),
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.quiz_outlined),
-            title: const Text('Квиз по местам'),
-            subtitle: Text(
-              _quizAnswers.isEmpty
-                  ? 'Не заполнен'
-                  : 'Заполнено: ${_quizAnswers.length} ответов',
+            const SizedBox(height: 12),
+            TextField(
+              controller: _bioController,
+              decoration: const InputDecoration(labelText: 'О себе'),
+              maxLines: 3,
             ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () async {
-              final updated = await Navigator.of(context).push<UserProfile>(
-                MaterialPageRoute(builder: (_) => const PlacesQuizPage()),
-              );
-              if (updated == null || !mounted) return;
-              setState(() => _quizAnswers = updated.placesQuizAnswers);
-            },
-          ),
-          const SizedBox(height: 8),
-          Text('Фото (до 10)', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed:
-                _photoUrls.length >= 10 || _uploadingPhoto ? null : _pickPhoto,
-            icon:
-                _uploadingPhoto
-                    ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                    : const Icon(Icons.add_a_photo_outlined),
-            label: Text(_uploadingPhoto ? 'Загрузка…' : 'Добавить из галереи'),
-          ),
-          if (_photoUrls.isNotEmpty)
-            SizedBox(
-              height: 86,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _photoUrls.length,
-                itemBuilder: (_, index) {
-                  final provider = PhotoUploadService.imageProvider(
-                    _photoUrls[index],
-                  );
-                  return GestureDetector(
-                    onTap: () => setState(() => _mainPhotoIndex = index),
-                    onLongPress: () {
-                      setState(() {
-                        _photoUrls.removeAt(index);
-                        if (_mainPhotoIndex >= _photoUrls.length) {
-                          _mainPhotoIndex =
-                              _photoUrls.isEmpty ? 0 : _photoUrls.length - 1;
-                        }
-                      });
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 8, top: 8),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color:
-                              _mainPhotoIndex == index
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Colors.transparent,
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child:
-                            provider == null
-                                ? Container(
-                                  width: 78,
-                                  height: 78,
-                                  color: Colors.grey.shade300,
-                                  child: const Icon(
-                                    Icons.broken_image_outlined,
-                                  ),
-                                )
-                                : Image(
-                                  image: provider,
-                                  width: 78,
-                                  height: 78,
-                                  fit: BoxFit.cover,
-                                ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: _gender,
+              decoration: const InputDecoration(labelText: 'Пол'),
+              items: const [
+                DropdownMenuItem(value: 'male', child: Text('Мужской')),
+                DropdownMenuItem(value: 'female', child: Text('Женский')),
+                DropdownMenuItem(value: 'other', child: Text('Другой')),
+              ],
+              onChanged: (value) => setState(() => _gender = value),
             ),
-          if (_photoUrls.isNotEmpty)
-            Text(
-              'Нажмите — главное фото, долгое нажатие — удалить',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          if (!widget.initialProfile.phoneVerified)
+            const SizedBox(height: 12),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.phone_iphone),
-              title: const Text('Подтвердить телефон'),
-              subtitle: const Text('Бейдж доверия в подборе компании'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: _openPhoneVerify,
+              title: const Text('Дата рождения'),
+              subtitle: Text(
+                _birthDate == null
+                    ? 'Не указана'
+                    : '${_birthDate!.day}.${_birthDate!.month}.${_birthDate!.year} · ${zodiacRuLabel(_zodiacSign)}',
+              ),
+              trailing: const Icon(Icons.calendar_today_outlined),
+              onTap: _pickBirthDate,
             ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.notifications_outlined),
-            title: const Text('Уведомления'),
-            subtitle: const Text('Пуши о встречах, чатах и кампаниях'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder:
-                      (_) => NotificationSettingsPage(
-                        isOrganizer: _role == 'organizer',
-                      ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: _lookingFor,
+              decoration: const InputDecoration(labelText: 'Кого ищу'),
+              items: const [
+                DropdownMenuItem(value: 'male', child: Text('Мужчины')),
+                DropdownMenuItem(value: 'female', child: Text('Женщины')),
+                DropdownMenuItem(value: 'any', child: Text('Любой')),
+              ],
+              onChanged: (value) => setState(() => _lookingFor = value),
+            ),
+            const SizedBox(height: 12),
+            // ignore: deprecated_member_use — value устарел в новых SDK; initialValue недоступен на старых Flutter.
+            DropdownButtonFormField<String>(
+              value: _role,
+              decoration: const InputDecoration(labelText: 'Роль'),
+              items: const [
+                DropdownMenuItem(value: 'user', child: Text('Пользователь')),
+                DropdownMenuItem(
+                  value: 'organizer',
+                  child: Text('Организатор'),
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _saveProfile,
-              child: const Text('Сохранить профиль'),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                context.read<AuthBloc>().add(AuthSignOutRequested());
-                Navigator.of(context).popUntil((route) => route.isFirst);
+              ],
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() {
+                  _role = value;
+                });
               },
-              icon: const Icon(Icons.logout),
-              label: const Text('Выйти'),
             ),
-          ),
-        ],
-      ),
+            const SizedBox(height: 16),
+            Text('Интересы', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children:
+                  ProfileInterestCatalog.all.map((interest) {
+                    final selected = _selectedInterests.contains(interest);
+                    return FilterChip(
+                      label: Text(interest),
+                      selected: selected,
+                      onSelected: (value) {
+                        setState(() {
+                          if (value) {
+                            _selectedInterests.add(interest);
+                          } else {
+                            _selectedInterests.remove(interest);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Готов к встречам'),
+              value: _readyForMeeting,
+              onChanged: (value) => setState(() => _readyForMeeting = value),
+            ),
+            const SizedBox(height: 8),
+            AccountBadges(profile: widget.initialProfile),
+            const SizedBox(height: 8),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      widget.initialProfile.hasActivePremium
+                          ? 'Premium активен'
+                          : 'Бесплатный аккаунт',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      widget.initialProfile.hasActivePremium
+                          ? 'Безлимит приглашений и создания групп'
+                          : 'Осталось на неделю: $_invitesLeft приглашений, $_createsLeft групп',
+                    ),
+                    const SizedBox(height: 10),
+                    if (!widget.initialProfile.hasActivePremium)
+                      FilledButton.icon(
+                        onPressed: () async {
+                          final nav = Navigator.of(context);
+                          final bought = await openPremiumPaywall(context);
+                          if (!bought || !mounted) return;
+                          final updated = widget.initialProfile.copyWith(
+                            name: _nameController.text.trim(),
+                            bio: _bioController.text.trim(),
+                            role: _role,
+                            city: _cityController.text.trim(),
+                            interests: _selectedInterests.toList()..sort(),
+                            readyForMeeting: _readyForMeeting,
+                            gender: _gender,
+                            birthDate: _birthDate,
+                            lookingFor: _lookingFor,
+                            zodiacSign: _zodiacSign,
+                            placesQuizAnswers: _quizAnswers,
+                            profilePhotoUrls: _photoUrls,
+                            mainPhotoIndex: _mainPhotoIndex,
+                            isPremium: true,
+                            premiumUntil: DateTime.now().add(
+                              const Duration(days: 30),
+                            ),
+                          );
+                          nav.pop(updated);
+                        },
+                        icon: const Icon(Icons.workspace_premium),
+                        label: const Text('Купить Premium'),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.quiz_outlined),
+              title: const Text('Квиз по местам'),
+              subtitle: Text(
+                _quizAnswers.isEmpty
+                    ? 'Не заполнен'
+                    : 'Заполнено: ${_quizAnswers.length} ответов',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () async {
+                final updated = await Navigator.of(context).push<UserProfile>(
+                  MaterialPageRoute(builder: (_) => const PlacesQuizPage()),
+                );
+                if (updated == null || !mounted) return;
+                setState(() => _quizAnswers = updated.placesQuizAnswers);
+              },
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Фото (до 10)',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed:
+                  _photoUrls.length >= 10 || _uploadingPhoto
+                      ? null
+                      : _pickPhoto,
+              icon:
+                  _uploadingPhoto
+                      ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : const Icon(Icons.add_a_photo_outlined),
+              label: Text(
+                _uploadingPhoto ? 'Загрузка…' : 'Добавить из галереи',
+              ),
+            ),
+            if (_photoUrls.isNotEmpty)
+              SizedBox(
+                height: 86,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _photoUrls.length,
+                  itemBuilder: (_, index) {
+                    final provider = PhotoUploadService.imageProvider(
+                      _photoUrls[index],
+                    );
+                    return GestureDetector(
+                      onTap: () => setState(() => _mainPhotoIndex = index),
+                      onLongPress: () {
+                        setState(() {
+                          _photoUrls.removeAt(index);
+                          if (_mainPhotoIndex >= _photoUrls.length) {
+                            _mainPhotoIndex =
+                                _photoUrls.isEmpty ? 0 : _photoUrls.length - 1;
+                          }
+                        });
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 8, top: 8),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color:
+                                _mainPhotoIndex == index
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Colors.transparent,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child:
+                              provider == null
+                                  ? Container(
+                                    width: 78,
+                                    height: 78,
+                                    color: Colors.grey.shade300,
+                                    child: const Icon(
+                                      Icons.broken_image_outlined,
+                                    ),
+                                  )
+                                  : Image(
+                                    image: provider,
+                                    width: 78,
+                                    height: 78,
+                                    fit: BoxFit.cover,
+                                  ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            if (_photoUrls.isNotEmpty)
+              Text(
+                'Нажмите — главное фото, долгое нажатие — удалить',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            if (!widget.initialProfile.phoneVerified)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.phone_iphone),
+                title: const Text('Подтвердить телефон'),
+                subtitle: const Text('Бейдж доверия в подборе компании'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _openPhoneVerify,
+              ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.notifications_outlined),
+              title: const Text('Уведомления'),
+              subtitle: const Text('Пуши о встречах, чатах и кампаниях'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder:
+                        (_) => NotificationSettingsPage(
+                          isOrganizer: _role == 'organizer',
+                        ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _saveProfile,
+                child: const Text('Сохранить профиль'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  context.read<AuthBloc>().add(AuthSignOutRequested());
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                },
+                icon: const Icon(Icons.logout),
+                label: const Text('Выйти'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

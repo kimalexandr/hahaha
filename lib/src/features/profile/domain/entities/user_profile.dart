@@ -20,8 +20,10 @@ class UserProfile {
 
   /// Premium-подписка: без лимитов и без блюра чужих профилей.
   final bool isPremium;
+
   /// Профиль проверен (телефон или модератором через админку).
   final bool isVerified;
+
   /// Флаг модератора — выставляется только через админку, не в UI профиля.
   final bool isModerator;
   final DateTime? premiumUntil;

@@ -156,9 +156,10 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   Future<void> _signInWithGoogleProvider() async {
-    final provider = GoogleAuthProvider()
-      ..addScope('email')
-      ..addScope('profile');
+    final provider =
+        GoogleAuthProvider()
+          ..addScope('email')
+          ..addScope('profile');
     await _firebaseAuth.signInWithProvider(provider);
   }
 

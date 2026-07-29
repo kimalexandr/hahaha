@@ -22,6 +22,7 @@ class Event {
   bool hasTicket;
   bool isTicketUsed;
   bool isCreatedByMe;
+
   /// Скрыто из публичной ленты — только для организатора.
   bool isHidden;
 

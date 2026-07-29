@@ -690,8 +690,7 @@ class _HomePageState extends State<HomePage> {
                 MaterialPageRoute(
                   builder:
                       (_) => EventsMapPage(
-                        events:
-                            _events.where((e) => !e.isHidden).toList(),
+                        events: _events.where((e) => !e.isHidden).toList(),
                         onOpenEvent: _openEventDetails,
                       ),
                 ),
