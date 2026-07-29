@@ -1,7 +1,10 @@
 import 'package:eventa/src/core/di/injection.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
+import 'package:eventa/src/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:eventa/src/features/auth/presentation/bloc/auth_event.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -56,7 +59,9 @@ class _RegisterPageState extends State<RegisterPage> {
         _emailController.text,
         _passwordController.text,
       );
-      // AuthBloc переключит на онбординг профиля для нового пользователя.
+      if (!mounted) return;
+      context.read<AuthBloc>().add(AuthCheckRequested());
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -79,112 +84,119 @@ class _RegisterPageState extends State<RegisterPage> {
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: AbsorbPointer(
-            absorbing: _isLoading,
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Создайте аккаунт',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'После регистрации заполните профиль — это займёт минуту.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    autofillHints: const [AutofillHints.email],
-                    validator: (value) {
-                      final v = value?.trim() ?? '';
-                      if (v.isEmpty || !v.contains('@')) {
-                        return 'Введите корректный email';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordController,
-                    decoration: InputDecoration(
-                      labelText: 'Пароль',
-                      border: const OutlineInputBorder(),
-                      helperText: 'Минимум 6 символов',
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: AbsorbPointer(
+                  absorbing: _isLoading,
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Создайте аккаунт',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                          textAlign: TextAlign.center,
                         ),
-                        onPressed: () {
-                          setState(() => _obscurePassword = !_obscurePassword);
-                        },
-                      ),
-                    ),
-                    obscureText: _obscurePassword,
-                    autofillHints: const [AutofillHints.newPassword],
-                    validator: (value) {
-                      if (value == null || value.length < 6) {
-                        return 'Пароль не короче 6 символов';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _confirmController,
-                    decoration: InputDecoration(
-                      labelText: 'Повторите пароль',
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureConfirm
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
+                        const SizedBox(height: 8),
+                        Text(
+                          'После регистрации заполним профиль за минуту.',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                        onPressed: () {
-                          setState(() => _obscureConfirm = !_obscureConfirm);
-                        },
-                      ),
+                        const SizedBox(height: 24),
+                        TextFormField(
+                          controller: _emailController,
+                          decoration: const InputDecoration(labelText: 'Email'),
+                          keyboardType: TextInputType.emailAddress,
+                          autofillHints: const [AutofillHints.email],
+                          validator: (value) {
+                            final v = value?.trim() ?? '';
+                            if (v.isEmpty || !v.contains('@')) {
+                              return 'Введите корректный email';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _passwordController,
+                          decoration: InputDecoration(
+                            labelText: 'Пароль',
+                            helperText: 'Минимум 6 символов',
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                              ),
+                              onPressed: () {
+                                setState(
+                                  () => _obscurePassword = !_obscurePassword,
+                                );
+                              },
+                            ),
+                          ),
+                          obscureText: _obscurePassword,
+                          autofillHints: const [AutofillHints.newPassword],
+                          validator: (value) {
+                            if (value == null || value.length < 6) {
+                              return 'Пароль не короче 6 символов';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _confirmController,
+                          decoration: InputDecoration(
+                            labelText: 'Повторите пароль',
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureConfirm
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                              ),
+                              onPressed: () {
+                                setState(
+                                  () => _obscureConfirm = !_obscureConfirm,
+                                );
+                              },
+                            ),
+                          ),
+                          obscureText: _obscureConfirm,
+                          validator: (value) {
+                            if (value != _passwordController.text) {
+                              return 'Пароли не совпадают';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        if (_isLoading)
+                          const Center(child: CircularProgressIndicator())
+                        else
+                          FilledButton(
+                            onPressed: _register,
+                            child: const Text('Зарегистрироваться'),
+                          ),
+                        const SizedBox(height: 10),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          child: const Text('Уже есть аккаунт? Войти'),
+                        ),
+                      ],
                     ),
-                    obscureText: _obscureConfirm,
-                    validator: (value) {
-                      if (value != _passwordController.text) {
-                        return 'Пароли не совпадают';
-                      }
-                      return null;
-                    },
                   ),
-                  const SizedBox(height: 28),
-                  if (_isLoading)
-                    const Center(child: CircularProgressIndicator())
-                  else
-                    FilledButton(
-                      onPressed: _register,
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text('Зарегистрироваться'),
-                    ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    child: const Text('Уже есть аккаунт? Войти'),
-                  ),
-                ],
+                ),
               ),
             ),
           ),

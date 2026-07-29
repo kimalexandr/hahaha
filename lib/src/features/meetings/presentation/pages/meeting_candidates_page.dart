@@ -245,12 +245,18 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                    child: Text(
-                      '${meeting.topic.isEmpty ? meeting.venueName : meeting.topic}\n'
-                      '${meeting.purpose.labelRu} · ${meeting.format.labelRu} · '
-                      '${meeting.joinedCount}/${meeting.maxParticipants} чел. · '
-                      '${meeting.venueName}\n'
-                      'Ваши интересы: ${(_me?.interests ?? const []).join(', ')}',
+                    child: Card(
+                      margin: EdgeInsets.zero,
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Text(
+                          '${meeting.topic.isEmpty ? meeting.venueName : meeting.topic}\n'
+                          '${meeting.purpose.labelRu} · ${meeting.format.labelRu} · '
+                          '${meeting.joinedCount}/${meeting.maxParticipants} чел. · '
+                          '${meeting.venueName}\n'
+                          'Ваши интересы: ${(_me?.interests ?? const []).join(', ')}',
+                        ),
+                      ),
                     ),
                   ),
                   if (!iAmJoined)

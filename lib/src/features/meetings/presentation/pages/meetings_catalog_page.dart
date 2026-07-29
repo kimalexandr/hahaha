@@ -126,6 +126,10 @@ class _MeetingsCatalogPageState extends State<MeetingsCatalogPage> {
                                   ? meeting.venueName
                                   : meeting.topic,
                             ),
+                            titleTextStyle: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w700),
                             subtitle: Text(
                               '${meeting.meetingKind.labelRu} · ${meeting.purpose.labelRu} · ${meeting.format.labelRu}\n'
                               '${meeting.linkedEventTitle ?? meeting.venueName} · $when',

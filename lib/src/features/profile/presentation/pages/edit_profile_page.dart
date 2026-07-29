@@ -90,90 +90,94 @@ class _EditProfilePageState extends State<EditProfilePage> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(
-                'Расскажите о себе',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Имя, город и интересы нужны, чтобы подбирать встречи и компанию.',
-                style: Theme.of(context).textTheme.bodyMedium,
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Расскажите о себе',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Имя, город и интересы нужны, чтобы подбирать встречи и компанию.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 18),
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(labelText: 'Имя'),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Укажите имя';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _cityController,
+                        decoration: const InputDecoration(labelText: 'Город'),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Укажите город';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _bioController,
+                        decoration: const InputDecoration(labelText: 'О себе'),
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Интересы (минимум 1)',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children:
+                            ProfileInterestCatalog.all.map((interest) {
+                              final selected = _selectedInterests.contains(
+                                interest,
+                              );
+                              return FilterChip(
+                                label: Text(interest),
+                                selected: selected,
+                                onSelected: (value) {
+                                  setState(() {
+                                    if (value) {
+                                      _selectedInterests.add(interest);
+                                    } else {
+                                      _selectedInterests.remove(interest);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
+                      ),
+                      const SizedBox(height: 12),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Готов к встречам'),
+                        subtitle: const Text(
+                          'Показывать вас в подборе компании к заведениям',
+                        ),
+                        value: _readyForMeeting,
+                        onChanged:
+                            (value) => setState(() => _readyForMeeting = value),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Имя',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Укажите имя';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _cityController,
-                decoration: const InputDecoration(
-                  labelText: 'Город',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Укажите город';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _bioController,
-                decoration: const InputDecoration(
-                  labelText: 'О себе',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Интересы (минимум 1)',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children:
-                    ProfileInterestCatalog.all.map((interest) {
-                      final selected = _selectedInterests.contains(interest);
-                      return FilterChip(
-                        label: Text(interest),
-                        selected: selected,
-                        onSelected: (value) {
-                          setState(() {
-                            if (value) {
-                              _selectedInterests.add(interest);
-                            } else {
-                              _selectedInterests.remove(interest);
-                            }
-                          });
-                        },
-                      );
-                    }).toList(),
-              ),
-              const SizedBox(height: 12),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Готов к встречам'),
-                subtitle: const Text(
-                  'Показывать вас в подборе компании к заведениям',
-                ),
-                value: _readyForMeeting,
-                onChanged: (value) => setState(() => _readyForMeeting = value),
-              ),
-              const SizedBox(height: 24),
               if (_saving)
                 const Center(child: CircularProgressIndicator())
               else

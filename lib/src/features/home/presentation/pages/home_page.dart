@@ -81,6 +81,7 @@ class _HomePageState extends State<HomePage> {
     ),
   ];
   List<Event> _filteredEvents = [];
+  bool _initialLoading = true;
   final Map<String, List<String>> _eventComments = {
     'event-1': ['Классный лайн-ап!', 'Кто еще идет?'],
     'event-2': ['Будет запись выступлений?'],
@@ -154,6 +155,7 @@ class _HomePageState extends State<HomePage> {
       if (savedNotifications.isNotEmpty) {
         _notifications = savedNotifications;
       }
+      _initialLoading = false;
     });
 
     _applyFilters();
@@ -513,20 +515,23 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildFeedList() {
+    if (_initialLoading) {
+      return ListView.builder(
+        padding: const EdgeInsets.only(bottom: 80),
+        itemCount: 4,
+        itemBuilder: (_, __) => const EventSkeletonCard(),
+      );
+    }
     final items = _eventsForCurrentTab();
     if (items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Нет мероприятий'),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: _reloadEvents,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Повторить'),
-            ),
-          ],
+      return EmptyStateView(
+        icon: Icons.event_note_outlined,
+        title: 'Нет мероприятий',
+        subtitle: 'Попробуйте изменить фильтры или обновить ленту',
+        action: OutlinedButton.icon(
+          onPressed: _reloadEvents,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Обновить'),
         ),
       );
     }
@@ -612,15 +617,14 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text(
-          'Eventa',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28),
+        title: const Text('Eventa'),
+        titleTextStyle: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: cs.onSurface,
         ),
-        backgroundColor: Colors.white,
-        elevation: 0.5,
         centerTitle: true,
         actions: [
           IconButton(
@@ -662,20 +666,16 @@ class _HomePageState extends State<HomePage> {
           if (_selectedTabIndex == 0) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Поиск мероприятий',
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 0,
-                    horizontal: 16,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
+              child: Card(
+                margin: EdgeInsets.zero,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: const InputDecoration(
+                      hintText: 'Поиск мероприятий',
+                      prefixIcon: Icon(Icons.search),
+                    ),
                   ),
                 ),
               ),
@@ -717,7 +717,17 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ],
-          Expanded(child: _buildTabContent()),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 280),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              child: KeyedSubtree(
+                key: ValueKey(_selectedTabIndex),
+                child: _buildTabContent(),
+              ),
+            ),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -731,16 +741,15 @@ class _HomePageState extends State<HomePage> {
               ? 'Добавить мероприятие'
               : 'Только для организатора',
         ),
-        backgroundColor: Colors.purpleAccent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedTabIndex,
         type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFF6A1B9A),
-        selectedItemColor: Colors.amberAccent,
-        unselectedItemColor: Colors.white70,
+        backgroundColor: cs.surface,
+        selectedItemColor: cs.primary,
+        unselectedItemColor: cs.onSurfaceVariant,
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
         unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
         showUnselectedLabels: true,

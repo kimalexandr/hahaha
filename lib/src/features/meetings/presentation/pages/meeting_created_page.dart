@@ -36,18 +36,34 @@ class MeetingCreatedPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(title, style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 8),
-            Text(
-              meeting.topic.isEmpty ? 'Без темы' : meeting.topic,
-              style: Theme.of(context).textTheme.titleMedium,
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      meeting.topic.isEmpty ? 'Без темы' : meeting.topic,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    Text('Тип: ${meeting.meetingKind.labelRu}'),
+                    Text('Цель: ${meeting.purpose.labelRu}'),
+                    Text('Формат: ${meeting.format.labelRu}'),
+                    Text(
+                      'Компания: ${meeting.joinedCount}/${meeting.maxParticipants}',
+                    ),
+                    Text('Когда: $when'),
+                    Text('Организатор: ${meeting.hostName}'),
+                  ],
+                ),
+              ),
             ),
-            Text('Тип: ${meeting.meetingKind.labelRu}'),
-            Text('Цель: ${meeting.purpose.labelRu}'),
-            Text('Формат: ${meeting.format.labelRu}'),
-            Text('Компания: ${meeting.joinedCount}/${meeting.maxParticipants}'),
-            Text('Когда: $when'),
-            Text('Организатор: ${meeting.hostName}'),
             const Spacer(),
             ElevatedButton.icon(
               onPressed: () {

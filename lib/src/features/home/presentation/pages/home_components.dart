@@ -43,10 +43,11 @@ class EventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 4,
+      elevation: 0,
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: onOpen,
@@ -77,15 +78,25 @@ class EventCard extends StatelessWidget {
                 children: [
                   Text(
                     event.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    '${event.category} • ${event.city} • ${event.price == 0 ? 'Бесплатно' : '${event.price.toStringAsFixed(0)} тг'}',
-                    style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      Chip(label: Text(event.category)),
+                      Chip(label: Text(event.city)),
+                      Chip(
+                        label: Text(
+                          event.price == 0
+                              ? 'Бесплатно'
+                              : '${event.price.toStringAsFixed(0)} тг',
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Row(
@@ -93,19 +104,19 @@ class EventCard extends StatelessWidget {
                       Icon(
                         Icons.calendar_today,
                         size: 16,
-                        color: Colors.grey[600],
+                        color: cs.onSurfaceVariant,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         DateFormat('d MMM, HH:mm', 'ru').format(event.date),
-                        style: TextStyle(color: Colors.grey[700]),
+                        style: TextStyle(color: cs.onSurfaceVariant),
                       ),
                       const SizedBox(width: 12),
-                      Icon(Icons.place, size: 16, color: Colors.grey[600]),
+                      Icon(Icons.place, size: 16, color: cs.onSurfaceVariant),
                       const SizedBox(width: 4),
                       Text(
                         event.place,
-                        style: TextStyle(color: Colors.grey[700]),
+                        style: TextStyle(color: cs.onSurfaceVariant),
                       ),
                     ],
                   ),
@@ -115,20 +126,32 @@ class EventCard extends StatelessWidget {
                   Row(
                     children: [
                       IconButton(
-                        icon: Icon(
-                          event.isLiked
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          color: event.isLiked ? Colors.red : Colors.grey[600],
+                        icon: AnimatedScale(
+                          scale: event.isLiked ? 1.12 : 1,
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOutBack,
+                          child: Icon(
+                            event.isLiked
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color:
+                                event.isLiked ? Colors.red : Colors.grey[600],
+                          ),
                         ),
                         onPressed: onLike,
                       ),
                       Text('${event.likes}'),
                       const SizedBox(width: 8),
                       IconButton(
-                        icon: Icon(
-                          event.isGoing ? Icons.person : Icons.person_outline,
-                          color: event.isGoing ? Colors.blue : Colors.grey[600],
+                        icon: AnimatedScale(
+                          scale: event.isGoing ? 1.1 : 1,
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOutBack,
+                          child: Icon(
+                            event.isGoing ? Icons.person : Icons.person_outline,
+                            color:
+                                event.isGoing ? Colors.blue : Colors.grey[600],
+                          ),
                         ),
                         onPressed: onGoing,
                       ),
@@ -150,14 +173,19 @@ class EventCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       IconButton(
-                        icon: Icon(
-                          event.isBookmarked
-                              ? Icons.bookmark
-                              : Icons.bookmark_border,
-                          color:
-                              event.isBookmarked
-                                  ? Colors.purple
-                                  : Colors.grey[600],
+                        icon: AnimatedScale(
+                          scale: event.isBookmarked ? 1.1 : 1,
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOutBack,
+                          child: Icon(
+                            event.isBookmarked
+                                ? Icons.bookmark
+                                : Icons.bookmark_border,
+                            color:
+                                event.isBookmarked
+                                    ? Colors.purple
+                                    : Colors.grey[600],
+                          ),
                         ),
                         onPressed: onBookmark,
                       ),
@@ -176,6 +204,126 @@ class EventCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class EventSkeletonCard extends StatelessWidget {
+  const EventSkeletonCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            _SkeletonLine(height: 180, widthFactor: 1),
+            SizedBox(height: 12),
+            _SkeletonLine(height: 20, widthFactor: 0.7),
+            SizedBox(height: 8),
+            _SkeletonLine(height: 14, widthFactor: 0.9),
+            SizedBox(height: 8),
+            _SkeletonLine(height: 14, widthFactor: 0.6),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SkeletonLine extends StatefulWidget {
+  const _SkeletonLine({required this.height, required this.widthFactor});
+
+  final double height;
+  final double widthFactor;
+
+  @override
+  State<_SkeletonLine> createState() => _SkeletonLineState();
+}
+
+class _SkeletonLineState extends State<_SkeletonLine>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: Tween<double>(begin: 0.38, end: 0.72).animate(_controller),
+      child: FractionallySizedBox(
+        widthFactor: widget.widthFactor,
+        child: Container(
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class EmptyStateView extends StatelessWidget {
+  const EmptyStateView({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.action,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 24),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 34, color: cs.primary),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  subtitle!,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                ),
+              ],
+              if (action != null) ...[const SizedBox(height: 14), action!],
+            ],
+          ),
         ),
       ),
     );
@@ -413,8 +561,9 @@ class MyEventsPage extends StatelessWidget {
       appBar: AppBar(title: const Text('Мои мероприятия')),
       body:
           events.isEmpty
-              ? const Center(
-                child: Text('Вы еще не добавили ни одного мероприятия'),
+              ? const EmptyStateView(
+                icon: Icons.event_busy_outlined,
+                title: 'Вы еще не добавили ни одного мероприятия',
               )
               : ListView.builder(
                 padding: const EdgeInsets.all(12),
@@ -470,7 +619,10 @@ class MyActivityPage extends StatelessWidget {
       appBar: AppBar(title: const Text('Моя активность')),
       body:
           events.isEmpty
-              ? const Center(child: Text('Пока нет активности по мероприятиям'))
+              ? const EmptyStateView(
+                icon: Icons.bolt_outlined,
+                title: 'Пока нет активности по мероприятиям',
+              )
               : ListView.builder(
                 padding: const EdgeInsets.all(12),
                 itemCount: events.length,
@@ -507,7 +659,10 @@ class FavoritesPage extends StatelessWidget {
       appBar: AppBar(title: const Text('Избранное')),
       body:
           events.isEmpty
-              ? const Center(child: Text('В избранном пока пусто'))
+              ? const EmptyStateView(
+                icon: Icons.bookmark_border,
+                title: 'В избранном пока пусто',
+              )
               : ListView.builder(
                 itemCount: events.length,
                 itemBuilder: (context, index) {
@@ -540,7 +695,10 @@ class MyTicketsPage extends StatelessWidget {
       appBar: AppBar(title: const Text('Мои билеты')),
       body:
           events.isEmpty
-              ? const Center(child: Text('Купленных билетов пока нет'))
+              ? const EmptyStateView(
+                icon: Icons.confirmation_num_outlined,
+                title: 'Купленных билетов пока нет',
+              )
               : ListView.builder(
                 itemCount: events.length,
                 itemBuilder: (context, index) {
@@ -856,22 +1014,43 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
             ),
           ),
           const SizedBox(height: 16),
-          Text(
-            DateFormat('d MMMM yyyy, HH:mm', 'ru').format(event.date),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    DateFormat('d MMMM yyyy, HH:mm', 'ru').format(event.date),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      Chip(label: Text(event.category)),
+                      Chip(label: Text(event.city)),
+                      Chip(
+                        label: Text(
+                          event.price == 0
+                              ? 'Бесплатно'
+                              : '${event.price.toStringAsFixed(0)} тг',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(event.place, style: const TextStyle(fontSize: 16)),
+                  const SizedBox(height: 12),
+                  Text(event.description, style: const TextStyle(fontSize: 16)),
+                ],
+              ),
+            ),
           ),
-          const SizedBox(height: 8),
-          Text('${event.category} • ${event.city}'),
-          const SizedBox(height: 8),
-          Text(
-            event.price == 0
-                ? 'Цена: Бесплатно'
-                : 'Цена: ${event.price.toStringAsFixed(0)} тг',
-          ),
-          const SizedBox(height: 8),
-          Text(event.place, style: const TextStyle(fontSize: 16)),
-          const SizedBox(height: 16),
-          Text(event.description, style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 20),
           if (_campaign != null && _campaign!.isActive)
             Container(
