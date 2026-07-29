@@ -189,12 +189,16 @@ class MeetingRepository {
     required String meetingId,
     required String senderId,
     required String text,
+    String? senderName,
+    String? senderPhotoUrl,
   }) async {
     if (_remoteEnabled) {
       await _remote.sendChatMessage(
         meetingId: meetingId,
         senderId: senderId,
         text: text,
+        senderName: senderName,
+        senderPhotoUrl: senderPhotoUrl,
       );
       return;
     }
@@ -205,6 +209,8 @@ class MeetingRepository {
         senderId: senderId,
         text: text,
         createdAt: DateTime.now(),
+        senderName: senderName,
+        senderPhotoUrl: senderPhotoUrl,
       ),
     );
   }
@@ -220,12 +226,16 @@ class MeetingRepository {
     required String eventId,
     required String senderId,
     required String text,
+    String? senderName,
+    String? senderPhotoUrl,
   }) async {
     if (_remoteEnabled) {
       await _attendees.sendEventChatMessage(
         eventId: eventId,
         senderId: senderId,
         text: text,
+        senderName: senderName,
+        senderPhotoUrl: senderPhotoUrl,
       );
       return;
     }
@@ -236,6 +246,8 @@ class MeetingRepository {
         senderId: senderId,
         text: text,
         createdAt: DateTime.now(),
+        senderName: senderName,
+        senderPhotoUrl: senderPhotoUrl,
       ),
     );
   }

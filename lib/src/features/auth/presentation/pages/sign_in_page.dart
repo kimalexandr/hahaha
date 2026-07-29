@@ -2,10 +2,13 @@ import 'package:eventa/src/core/app_runtime_config.dart';
 import 'package:eventa/src/core/di/injection.dart';
 import 'package:eventa/src/features/auth/data/google_sign_in_helper.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
+import 'package:eventa/src/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:eventa/src/features/auth/presentation/bloc/auth_event.dart';
 import 'package:eventa/src/features/auth/presentation/pages/forgot_password_page.dart';
 import 'package:eventa/src/features/auth/presentation/pages/register_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -58,6 +61,14 @@ class _SignInPageState extends State<SignInPage> {
           return 'Слишком много попыток. Подождите немного.';
         case 'network-request-failed':
           return 'Нет сети. Проверьте подключение.';
+        case 'account-exists-with-different-credential':
+          return error.message ??
+              'Email уже занят другим способом входа.';
+        case 'google-sign-in-cancelled':
+          return 'Вход через Google отменён.';
+        case 'google-id-token-missing':
+        case 'google-sign-in-failed':
+          return error.message ?? googleSignInUserMessage(error);
         default:
           if (error.message != null) return error.message!;
       }
@@ -72,6 +83,8 @@ class _SignInPageState extends State<SignInPage> {
 
     try {
       await signInMethod();
+      if (!mounted) return;
+      context.read<AuthBloc>().add(AuthCheckRequested());
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

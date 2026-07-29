@@ -1,5 +1,6 @@
 import 'package:eventa/src/core/di/injection.dart';
 import 'package:eventa/src/core/meetings_backend_config.dart';
+import 'package:eventa/src/core/widgets/app_user_avatar.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
 import 'package:eventa/src/features/chat/presentation/pages/meeting_chat_page.dart';
 import 'package:eventa/src/features/meetings/data/demo_candidate_catalog.dart';
@@ -9,6 +10,9 @@ import 'package:eventa/src/features/meetings/domain/compatibility_score.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
 import 'package:eventa/src/features/profile/data/profile_persistence.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
+import 'package:eventa/src/features/profile/domain/premium_limits.dart';
+import 'package:eventa/src/features/profile/presentation/pages/premium_paywall_page.dart';
+import 'package:eventa/src/features/profile/presentation/pages/public_profile_page.dart';
 import 'package:flutter/material.dart';
 
 class MeetingCandidatesPage extends StatefulWidget {
@@ -164,6 +168,20 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
       return;
     }
 
+    final me = _me;
+    final isPremium = me?.hasActivePremium == true;
+    final quota = PremiumQuotaService();
+    final allowed = await quota.canInvite(uid: uid, isPremium: isPremium);
+    if (!allowed) {
+      if (!mounted) return;
+      await openPremiumPaywall(
+        context,
+        reason:
+            'Лимит бесплатного аккаунта: не больше ${PremiumLimits.freeInvitesPerWeek} приглашений в неделю. Оформите Premium для безлимита.',
+      );
+      return;
+    }
+
     try {
       if (useFirestoreForMeetings) {
         // Создатель приглашает; кандидат потом join'ится сам.
@@ -177,6 +195,7 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
           fromUserId: uid,
           toUserId: candidate.profile.ownerId,
         );
+        await quota.recordInvite(uid);
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -195,6 +214,7 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
           fromUserId: uid,
           toUserId: candidate.profile.ownerId,
         );
+        await quota.recordInvite(uid);
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -301,6 +321,22 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
                                 final item = _candidates[index];
                                 return Card(
                                   child: ListTile(
+                                    onTap: () {
+                                      openPublicProfile(
+                                        context,
+                                        profile: item.profile,
+                                      );
+                                    },
+                                    leading: AppUserAvatar(
+                                      photoUrl: item.profile.mainPhotoUrl,
+                                      name: item.profile.name,
+                                      onTap: () {
+                                        openPublicProfile(
+                                          context,
+                                          profile: item.profile,
+                                        );
+                                      },
+                                    ),
                                     title: Row(
                                       children: [
                                         Expanded(

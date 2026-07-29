@@ -174,6 +174,8 @@ class MeetingRemoteStorage {
             senderId: data['senderId'] as String? ?? '',
             text: data['text'] as String? ?? '',
             createdAt: _asDateTime(data['sentAt']) ?? DateTime.now(),
+            senderName: data['senderName'] as String?,
+            senderPhotoUrl: data['senderPhotoUrl'] as String?,
           );
         }).toList();
       },
@@ -184,11 +186,15 @@ class MeetingRemoteStorage {
     required String meetingId,
     required String senderId,
     required String text,
+    String? senderName,
+    String? senderPhotoUrl,
   }) async {
     await _doc(meetingId).collection('chat').add({
       'senderId': senderId,
       'text': text,
       'sentAt': FieldValue.serverTimestamp(),
+      if (senderName != null) 'senderName': senderName,
+      if (senderPhotoUrl != null) 'senderPhotoUrl': senderPhotoUrl,
     });
   }
 

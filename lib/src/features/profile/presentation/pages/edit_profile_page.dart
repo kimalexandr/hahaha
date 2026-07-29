@@ -1,13 +1,17 @@
+import 'package:eventa/src/core/app_runtime_config.dart';
 import 'package:eventa/src/core/di/injection.dart';
+import 'package:eventa/src/core/media/photo_upload_service.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
 import 'package:eventa/src/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:eventa/src/features/auth/presentation/bloc/auth_event.dart';
 import 'package:eventa/src/features/home/presentation/pages/home_page.dart';
 import 'package:eventa/src/features/meetings/domain/dating_rules.dart';
+import 'package:eventa/src/features/profile/data/profile_persistence.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 import 'package:eventa/src/features/profile/domain/profile_interest_catalog.dart';
 import 'package:eventa/src/features/profile/presentation/pages/places_quiz_page.dart';
 import 'package:eventa/src/features/profile/presentation/pages/phone_verify_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -23,24 +27,66 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _nameController = TextEditingController();
   final _bioController = TextEditingController();
   final _cityController = TextEditingController();
-  final _photoUrlController = TextEditingController();
   final Set<String> _selectedInterests = {};
   bool _readyForMeeting = true;
   bool _saving = false;
+  bool _uploadingPhoto = false;
   String? _gender;
   String? _lookingFor;
   DateTime? _birthDate;
   String? _zodiacSign;
-  Map<String, String> _quizAnswers = {};
+  Map<String, List<String>> _quizAnswers = {};
   final List<String> _photoUrls = [];
   int _mainPhotoIndex = 0;
+  String _uid = 'user-1';
+
+  @override
+  void initState() {
+    super.initState();
+    _prefillFromAuth();
+  }
+
+  Future<void> _prefillFromAuth() async {
+    _uid = await getIt<AuthRepository>().currentUserId() ?? 'user-1';
+    final existing = await ProfilePersistence().read(_uid);
+
+    String? googleName;
+    String? googlePhoto;
+    if (appUsesFirebaseBackend) {
+      final user = FirebaseAuth.instance.currentUser;
+      googleName = user?.displayName;
+      googlePhoto = user?.photoURL;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _nameController.text =
+          (existing?.name.isNotEmpty == true)
+              ? existing!.name
+              : (googleName ?? '');
+      _bioController.text = existing?.bio ?? '';
+      _cityController.text = existing?.city ?? '';
+      if (existing != null) {
+        _selectedInterests.addAll(existing.interests);
+        _readyForMeeting = existing.readyForMeeting;
+        _gender = existing.gender;
+        _lookingFor = existing.lookingFor;
+        _birthDate = existing.birthDate;
+        _zodiacSign = existing.zodiacSign;
+        _quizAnswers = Map.of(existing.placesQuizAnswers);
+        _photoUrls.addAll(existing.profilePhotoUrls);
+        _mainPhotoIndex = existing.mainPhotoIndexSafe;
+      } else if (googlePhoto != null && googlePhoto.isNotEmpty) {
+        _photoUrls.add(googlePhoto);
+      }
+    });
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _bioController.dispose();
     _cityController.dispose();
-    _photoUrlController.dispose();
     super.dispose();
   }
 
@@ -60,14 +106,27 @@ class _EditProfilePageState extends State<EditProfilePage> {
     });
   }
 
-  void _addPhotoUrl() {
-    final url = _photoUrlController.text.trim();
-    if (url.isEmpty || _photoUrls.length >= 10) return;
-    setState(() {
-      _photoUrls.add(url);
-      _photoUrlController.clear();
-      if (_photoUrls.length == 1) _mainPhotoIndex = 0;
-    });
+  Future<void> _pickPhoto() async {
+    if (_photoUrls.length >= 10 || _uploadingPhoto) return;
+    setState(() => _uploadingPhoto = true);
+    try {
+      final url = await PhotoUploadService().pickAndUpload(
+        ownerId: _uid,
+        folder: 'profiles',
+      );
+      if (url == null || !mounted) return;
+      setState(() {
+        _photoUrls.add(url);
+        if (_photoUrls.length == 1) _mainPhotoIndex = 0;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось добавить фото')),
+      );
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
   }
 
   Future<void> _save() async {
@@ -248,23 +307,26 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _photoUrlController,
-                              decoration: const InputDecoration(
-                                hintText: 'Вставьте URL фото',
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed:
-                                _photoUrls.length >= 10 ? null : _addPhotoUrl,
-                            icon: const Icon(Icons.add_a_photo_outlined),
-                          ),
-                        ],
+                      OutlinedButton.icon(
+                        onPressed:
+                            _photoUrls.length >= 10 || _uploadingPhoto
+                                ? null
+                                : _pickPhoto,
+                        icon:
+                            _uploadingPhoto
+                                ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                                : const Icon(Icons.add_a_photo_outlined),
+                        label: Text(
+                          _uploadingPhoto
+                              ? 'Загрузка…'
+                              : 'Добавить из галереи',
+                        ),
                       ),
                       if (_photoUrls.isNotEmpty)
                         SizedBox(
@@ -276,30 +338,44 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                 (_, __) => const SizedBox(width: 8),
                             itemBuilder: (_, index) {
                               final isMain = _mainPhotoIndex == index;
+                              final provider = PhotoUploadService.imageProvider(
+                                _photoUrls[index],
+                              );
                               return GestureDetector(
                                 onTap:
-                                    () =>
-                                        setState(() => _mainPhotoIndex = index),
+                                    () => setState(() => _mainPhotoIndex = index),
+                                onLongPress: () {
+                                  setState(() {
+                                    _photoUrls.removeAt(index);
+                                    if (_mainPhotoIndex >= _photoUrls.length) {
+                                      _mainPhotoIndex =
+                                          _photoUrls.isEmpty
+                                              ? 0
+                                              : _photoUrls.length - 1;
+                                    }
+                                  });
+                                },
                                 child: Stack(
                                   children: [
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(12),
-                                      child: Image.network(
-                                        _photoUrls[index],
-                                        width: 84,
-                                        height: 84,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (_, __, ___) => Container(
-                                              width: 84,
-                                              height: 84,
-                                              color: Colors.grey.shade300,
-                                              alignment: Alignment.center,
-                                              child: const Icon(
-                                                Icons.image_not_supported,
+                                      child:
+                                          provider == null
+                                              ? Container(
+                                                width: 84,
+                                                height: 84,
+                                                color: Colors.grey.shade300,
+                                                alignment: Alignment.center,
+                                                child: const Icon(
+                                                  Icons.image_not_supported,
+                                                ),
+                                              )
+                                              : Image(
+                                                image: provider,
+                                                width: 84,
+                                                height: 84,
+                                                fit: BoxFit.cover,
                                               ),
-                                            ),
-                                      ),
                                     ),
                                     if (isMain)
                                       const Positioned(
@@ -315,6 +391,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               );
                             },
                           ),
+                        ),
+                      if (_photoUrls.isNotEmpty)
+                        Text(
+                          'Нажмите — главное, долгое нажатие — удалить',
+                          style: Theme.of(context).textTheme.bodySmall,
                         ),
                       const SizedBox(height: 12),
                       ListTile(

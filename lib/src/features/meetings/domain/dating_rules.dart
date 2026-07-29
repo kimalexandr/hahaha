@@ -106,11 +106,22 @@ int calculateAge(DateTime birthDate, {DateTime? now}) {
   return age;
 }
 
-double placesQuizScore(Map<String, String> a, Map<String, String> b) {
+double placesQuizScore(
+  Map<String, List<String>> a,
+  Map<String, List<String>> b,
+) {
   final commonQuestions = a.keys.toSet().intersection(b.keys.toSet());
   if (commonQuestions.isEmpty) return 0.0;
-  final matches = commonQuestions.where((q) => a[q] == b[q]).length;
-  return matches / commonQuestions.length;
+  var total = 0.0;
+  for (final q in commonQuestions) {
+    final setA = a[q]!.map((e) => e.toLowerCase()).toSet();
+    final setB = b[q]!.map((e) => e.toLowerCase()).toSet();
+    if (setA.isEmpty || setB.isEmpty) continue;
+    final intersection = setA.intersection(setB).length;
+    final union = setA.union(setB).length;
+    total += union == 0 ? 0.0 : intersection / union;
+  }
+  return total / commonQuestions.length;
 }
 
 const Map<String, Set<String>> _zodiacElements = {

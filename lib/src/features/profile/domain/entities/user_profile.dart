@@ -14,9 +14,16 @@ class UserProfile {
   final DateTime? birthDate;
   final String? lookingFor;
   final String? zodiacSign;
-  final Map<String, String> placesQuizAnswers;
+  final Map<String, List<String>> placesQuizAnswers;
   final List<String> profilePhotoUrls;
   final int mainPhotoIndex;
+  /// Premium-подписка: без лимитов и без блюра чужих профилей.
+  final bool isPremium;
+  /// Верификация (телефон / модератор).
+  final bool isVerified;
+  /// Права модератора.
+  final bool isModerator;
+  final DateTime? premiumUntil;
 
   const UserProfile({
     required this.id,
@@ -37,7 +44,30 @@ class UserProfile {
     this.placesQuizAnswers = const {},
     this.profilePhotoUrls = const [],
     this.mainPhotoIndex = 0,
+    this.isPremium = false,
+    this.isVerified = false,
+    this.isModerator = false,
+    this.premiumUntil,
   });
+
+  /// Совместимость со старым полем.
+  bool get isPaidProfile => isPremium;
+
+  int get mainPhotoIndexSafe {
+    if (profilePhotoUrls.isEmpty) return 0;
+    return mainPhotoIndex.clamp(0, profilePhotoUrls.length - 1);
+  }
+
+  String? get mainPhotoUrl {
+    if (profilePhotoUrls.isEmpty) return null;
+    return profilePhotoUrls[mainPhotoIndexSafe];
+  }
+
+  bool get hasActivePremium {
+    if (!isPremium) return false;
+    if (premiumUntil == null) return true;
+    return premiumUntil!.isAfter(DateTime.now());
+  }
 
   UserProfile copyWith({
     String? name,
@@ -52,11 +82,17 @@ class UserProfile {
     DateTime? birthDate,
     String? lookingFor,
     String? zodiacSign,
-    Map<String, String>? placesQuizAnswers,
+    Map<String, List<String>>? placesQuizAnswers,
     List<String>? profilePhotoUrls,
     int? mainPhotoIndex,
+    bool? isPremium,
+    bool? isPaidProfile,
+    bool? isVerified,
+    bool? isModerator,
+    DateTime? premiumUntil,
     bool clearPhoneVerifiedAt = false,
     bool clearBirthDate = false,
+    bool clearPremiumUntil = false,
   }) {
     return UserProfile(
       id: id,
@@ -80,6 +116,11 @@ class UserProfile {
       placesQuizAnswers: placesQuizAnswers ?? this.placesQuizAnswers,
       profilePhotoUrls: profilePhotoUrls ?? this.profilePhotoUrls,
       mainPhotoIndex: mainPhotoIndex ?? this.mainPhotoIndex,
+      isPremium: isPremium ?? isPaidProfile ?? this.isPremium,
+      isVerified: isVerified ?? this.isVerified,
+      isModerator: isModerator ?? this.isModerator,
+      premiumUntil:
+          clearPremiumUntil ? null : (premiumUntil ?? this.premiumUntil),
     );
   }
 
@@ -103,6 +144,11 @@ class UserProfile {
       'placesQuizAnswers': placesQuizAnswers,
       'profilePhotoUrls': profilePhotoUrls,
       'mainPhotoIndex': mainPhotoIndex,
+      'isPremium': isPremium,
+      'isPaidProfile': isPremium,
+      'isVerified': isVerified,
+      'isModerator': isModerator,
+      'premiumUntil': premiumUntil?.toIso8601String(),
     };
   }
 
@@ -112,6 +158,7 @@ class UserProfile {
     final rawQuiz = map['placesQuizAnswers'];
     final rawPhotos = map['profilePhotoUrls'];
     final rawBirthDate = map['birthDate'];
+    final rawPremiumUntil = map['premiumUntil'];
     DateTime? parsedBirthDate;
     if (rawBirthDate is DateTime) {
       parsedBirthDate = rawBirthDate;
@@ -120,6 +167,9 @@ class UserProfile {
     } else if (rawBirthDate is String && rawBirthDate.isNotEmpty) {
       parsedBirthDate = DateTime.tryParse(rawBirthDate);
     }
+    final phoneVerified = map['phoneVerified'] as bool? ?? false;
+    final isPremium =
+        map['isPremium'] as bool? ?? map['isPaidProfile'] as bool? ?? false;
     return UserProfile(
       id: map['id'] as String? ?? '',
       createdAt: DateTime.parse(
@@ -135,7 +185,7 @@ class UserProfile {
               ? rawInterests.map((e) => e.toString()).toList()
               : const [],
       readyForMeeting: map['readyForMeeting'] as bool? ?? false,
-      phoneVerified: map['phoneVerified'] as bool? ?? false,
+      phoneVerified: phoneVerified,
       phoneVerifiedAt:
           verifiedAt is String && verifiedAt.isNotEmpty
               ? DateTime.tryParse(verifiedAt)
@@ -144,17 +194,34 @@ class UserProfile {
       birthDate: parsedBirthDate,
       lookingFor: map['lookingFor'] as String?,
       zodiacSign: map['zodiacSign'] as String?,
-      placesQuizAnswers:
-          rawQuiz is Map
-              ? rawQuiz.map(
-                (key, value) => MapEntry(key.toString(), value.toString()),
-              )
-              : const {},
+      placesQuizAnswers: _parseQuizAnswers(rawQuiz),
       profilePhotoUrls:
           rawPhotos is List
               ? rawPhotos.map((e) => e.toString()).toList()
               : const [],
       mainPhotoIndex: (map['mainPhotoIndex'] as num?)?.toInt() ?? 0,
+      isPremium: isPremium,
+      isVerified: map['isVerified'] as bool? ?? phoneVerified,
+      isModerator: map['isModerator'] as bool? ?? map['role'] == 'moderator',
+      premiumUntil:
+          rawPremiumUntil is String && rawPremiumUntil.isNotEmpty
+              ? DateTime.tryParse(rawPremiumUntil)
+              : null,
     );
   }
+}
+
+Map<String, List<String>> _parseQuizAnswers(dynamic rawQuiz) {
+  if (rawQuiz is! Map) return const {};
+  final result = <String, List<String>>{};
+  rawQuiz.forEach((key, value) {
+    final id = key.toString();
+    if (value is List) {
+      result[id] = value.map((e) => e.toString()).toList();
+    } else if (value != null && value.toString().isNotEmpty) {
+      // Старый формат: один ответ строкой.
+      result[id] = [value.toString()];
+    }
+  });
+  return result;
 }

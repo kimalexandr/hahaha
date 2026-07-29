@@ -4,6 +4,7 @@ import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dar
 import 'package:eventa/src/features/profile/data/profile_persistence.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:injectable/injectable.dart';
 
@@ -43,7 +44,22 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> signInWithGoogle() async {
-    final account = await _googleSignIn.signIn();
+    try {
+      // Сброс зависшей сессии — частая причина «отмены» / reauth failed.
+      await _googleSignIn.signOut();
+    } catch (_) {}
+
+    final GoogleSignInAccount? account;
+    try {
+      account = await _googleSignIn.signIn();
+    } catch (e, st) {
+      debugPrint('GoogleSignIn.signIn failed: $e\n$st');
+      throw FirebaseAuthException(
+        code: 'google-sign-in-failed',
+        message: googleSignInUserMessage(e),
+      );
+    }
+
     if (account == null) {
       throw FirebaseAuthException(
         code: 'google-sign-in-cancelled',
@@ -57,16 +73,31 @@ class FirebaseAuthRepository implements AuthRepository {
       throw FirebaseAuthException(
         code: 'google-id-token-missing',
         message:
-            'Google не вернул idToken. Проверьте Web Client ID и SHA-1 в Firebase.',
+            'Google не вернул idToken. Проверьте Web Client ID '
+            '(default_web_client_id), SHA-1/SHA-256 в Firebase Console и '
+            'актуальный google-services.json.',
       );
     }
 
-    await _firebaseAuth.signInWithCredential(
-      GoogleAuthProvider.credential(
-        accessToken: auth.accessToken,
-        idToken: idToken,
-      ),
-    );
+    try {
+      await _firebaseAuth.signInWithCredential(
+        GoogleAuthProvider.credential(
+          accessToken: auth.accessToken,
+          idToken: idToken,
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'account-exists-with-different-credential') {
+        throw FirebaseAuthException(
+          code: e.code,
+          message:
+              'Этот email уже зарегистрирован другим способом '
+              '(обычно email/пароль). Войдите тем же способом или '
+              'восстановите пароль.',
+        );
+      }
+      rethrow;
+    }
   }
 
   @override
@@ -81,14 +112,20 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<bool> isNewUser() async {
     final user = _firebaseAuth.currentUser;
     if (user == null) return true;
-    final profileDoc =
-        await _firestore.collection('profiles').doc(user.uid).get();
-    if (!profileDoc.exists) return true;
-    final data = profileDoc.data();
-    if (data == null) return true;
-    if (data['profileCreated'] == true) return false;
-    final interests = data['interests'];
-    return !(interests is List && interests.isNotEmpty);
+    try {
+      final profileDoc =
+          await _firestore.collection('profiles').doc(user.uid).get();
+      if (!profileDoc.exists) return true;
+      final data = profileDoc.data();
+      if (data == null) return true;
+      if (data['profileCreated'] == true) return false;
+      final interests = data['interests'];
+      return !(interests is List && interests.isNotEmpty);
+    } catch (e) {
+      debugPrint('isNewUser failed: $e');
+      // При сетевой ошибке не блокируем вход — считаем онбординг нужным.
+      return true;
+    }
   }
 
   @override
@@ -104,7 +141,7 @@ class FirebaseAuthRepository implements AuthRepository {
       );
     }
     final toSave = UserProfile(
-      id: profile.id.isEmpty ? user.uid : profile.id,
+      id: user.uid,
       createdAt: profile.createdAt,
       ownerId: user.uid,
       name: profile.name,
@@ -113,11 +150,25 @@ class FirebaseAuthRepository implements AuthRepository {
       city: profile.city,
       interests: profile.interests,
       readyForMeeting: profile.readyForMeeting,
+      phoneVerified: profile.phoneVerified,
+      phoneVerifiedAt: profile.phoneVerifiedAt,
+      gender: profile.gender,
+      birthDate: profile.birthDate,
+      lookingFor: profile.lookingFor,
+      zodiacSign: profile.zodiacSign,
+      placesQuizAnswers: profile.placesQuizAnswers,
+      profilePhotoUrls: profile.profilePhotoUrls,
+      mainPhotoIndex: profile.mainPhotoIndex,
+      isPremium: profile.isPremium,
+      isVerified: profile.isVerified,
+      isModerator: profile.isModerator,
+      premiumUntil: profile.premiumUntil,
     );
     await _persistence.save(toSave);
     await _firestore.collection('profiles').doc(user.uid).set({
       ...toSave.toMap(),
       'profileCreated': true,
+      'email': user.email,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }

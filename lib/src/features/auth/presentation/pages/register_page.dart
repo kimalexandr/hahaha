@@ -1,4 +1,5 @@
 import 'package:eventa/src/core/di/injection.dart';
+import 'package:eventa/src/features/auth/data/google_sign_in_helper.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
 import 'package:eventa/src/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:eventa/src/features/auth/presentation/bloc/auth_event.dart';
@@ -43,11 +44,25 @@ class _RegisterPageState extends State<RegisterPage> {
           return 'Регистрация по email отключена в Firebase Console.';
         case 'network-request-failed':
           return 'Нет сети. Проверьте подключение.';
+        case 'account-exists-with-different-credential':
+          return error.message ??
+              'Email уже занят другим способом входа. Войдите через email/пароль.';
+        case 'google-sign-in-cancelled':
+          return 'Регистрация через Google отменена.';
+        case 'google-id-token-missing':
+        case 'google-sign-in-failed':
+          return error.message ?? googleSignInUserMessage(error);
         default:
           return error.message ?? 'Не удалось создать аккаунт.';
       }
     }
-    return error.toString();
+    return googleSignInUserMessage(error);
+  }
+
+  Future<void> _finishAuthSuccess() async {
+    if (!mounted) return;
+    context.read<AuthBloc>().add(AuthCheckRequested());
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   Future<void> _register() async {
@@ -59,9 +74,27 @@ class _RegisterPageState extends State<RegisterPage> {
         _emailController.text,
         _passwordController.text,
       );
-      if (!mounted) return;
-      context.read<AuthBloc>().add(AuthCheckRequested());
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      await _finishAuthSuccess();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_errorMessage(e)),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            duration: const Duration(seconds: 8),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _registerWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      await getIt<AuthRepository>().signInWithGoogle();
+      await _finishAuthSuccess();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -112,7 +145,29 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
+                        OutlinedButton.icon(
+                          onPressed: _registerWithGoogle,
+                          icon: const Icon(Icons.g_mobiledata),
+                          label: const Text('Продолжить с Google'),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            const Expanded(child: Divider()),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              child: Text(
+                                'или email',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ),
+                            const Expanded(child: Divider()),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
                         TextFormField(
                           controller: _emailController,
                           decoration: const InputDecoration(labelText: 'Email'),

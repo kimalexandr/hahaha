@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eventa/src/features/home/domain/entities/event.dart';
+import 'package:eventa/src/features/home/domain/entities/event_comment.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 
 class HomeRemoteStorage {
@@ -17,7 +18,11 @@ class HomeRemoteStorage {
 
   Future<List<Event>> readEvents() async {
     final snapshot = await _eventsRef.get();
-    return snapshot.docs.map((doc) => Event.fromMap(doc.data())).toList();
+    return snapshot.docs.map((doc) {
+      final data = Map<String, dynamic>.from(doc.data());
+      data['id'] = data['id'] ?? doc.id;
+      return Event.fromMap(data);
+    }).toList();
   }
 
   Future<void> upsertEvent(Event event) async {
@@ -46,23 +51,35 @@ class HomeRemoteStorage {
         .set(profile.toMap(), SetOptions(merge: true));
   }
 
-  Future<Map<String, List<String>>> readCommentsMap() async {
+  Future<Map<String, List<EventComment>>> readCommentsMap() async {
     final snapshot = await _commentsRef.get();
-    final result = <String, List<String>>{};
+    final result = <String, List<EventComment>>{};
     for (final doc in snapshot.docs) {
       final data = doc.data();
       final rawComments = data['comments'];
-      if (rawComments is List) {
-        result[doc.id] = rawComments.map((e) => e.toString()).toList();
+      if (rawComments is! List) continue;
+      final list = <EventComment>[];
+      for (var i = 0; i < rawComments.length; i++) {
+        final item = rawComments[i];
+        if (item is Map) {
+          list.add(EventComment.fromMap(Map<dynamic, dynamic>.from(item)));
+        } else {
+          list.add(EventComment.fromLegacy(item.toString(), index: i));
+        }
       }
+      result[doc.id] = list;
     }
     return result;
   }
 
-  Future<void> saveCommentsMap(Map<String, List<String>> commentsMap) async {
+  Future<void> saveCommentsMap(
+    Map<String, List<EventComment>> commentsMap,
+  ) async {
     final batch = _firestore.batch();
     for (final entry in commentsMap.entries) {
-      batch.set(_commentsRef.doc(entry.key), {'comments': entry.value});
+      batch.set(_commentsRef.doc(entry.key), {
+        'comments': entry.value.map((e) => e.toMap()).toList(),
+      });
     }
     await batch.commit();
   }

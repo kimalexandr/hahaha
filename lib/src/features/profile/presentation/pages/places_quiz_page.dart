@@ -12,7 +12,7 @@ class PlacesQuizPage extends StatefulWidget {
 }
 
 class _PlacesQuizPageState extends State<PlacesQuizPage> {
-  final Map<String, String> _answers = {};
+  final Map<String, Set<String>> _answers = {};
   int _step = 0;
   bool _saving = false;
 
@@ -21,6 +21,7 @@ class _PlacesQuizPageState extends State<PlacesQuizPage> {
   String get _questionId => _question['id'] as String;
   String get _questionText => _question['text'] as String;
   bool get _isLast => _step == placesQuizQuestions.length - 1;
+  Set<String> get _selected => _answers.putIfAbsent(_questionId, () => <String>{});
 
   @override
   void initState() {
@@ -33,7 +34,9 @@ class _PlacesQuizPageState extends State<PlacesQuizPage> {
     final me = await ProfilePersistence().read(uid);
     if (me == null || !mounted) return;
     setState(() {
-      _answers.addAll(me.placesQuizAnswers);
+      for (final entry in me.placesQuizAnswers.entries) {
+        _answers[entry.key] = entry.value.toSet();
+      }
     });
   }
 
@@ -44,7 +47,11 @@ class _PlacesQuizPageState extends State<PlacesQuizPage> {
       final persistence = ProfilePersistence();
       final existing = await persistence.read(uid);
       if (existing == null) throw StateError('profile_not_found');
-      final updated = existing.copyWith(placesQuizAnswers: Map.of(_answers));
+      final serialized = <String, List<String>>{
+        for (final e in _answers.entries)
+          if (e.value.isNotEmpty) e.key: e.value.toList()..sort(),
+      };
+      final updated = existing.copyWith(placesQuizAnswers: serialized);
       await persistence.save(updated);
       if (!mounted) return;
       Navigator.of(context).pop(updated);
@@ -58,9 +65,20 @@ class _PlacesQuizPageState extends State<PlacesQuizPage> {
     }
   }
 
+  void _toggle(String option, bool selected) {
+    setState(() {
+      final set = _selected;
+      if (selected) {
+        set.add(option);
+      } else {
+        set.remove(option);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final selected = _answers[_questionId];
+    final selected = _selected;
     final progress = (_step + 1) / placesQuizQuestions.length;
     return Scaffold(
       appBar: AppBar(title: const Text('Квиз по местам')),
@@ -74,6 +92,13 @@ class _PlacesQuizPageState extends State<PlacesQuizPage> {
             Text(
               'Вопрос ${_step + 1} из ${placesQuizQuestions.length}',
               style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Можно выбрать несколько вариантов',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 16),
             Card(
@@ -92,19 +117,24 @@ class _PlacesQuizPageState extends State<PlacesQuizPage> {
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (_, index) {
                   final option = _options[index];
-                  return RadioListTile<String>(
-                    value: option,
-                    groupValue: selected,
+                  final isOn = selected.contains(option);
+                  return CheckboxListTile(
+                    value: isOn,
                     title: Text(option),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() => _answers[_questionId] = value);
-                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                    onChanged: (value) => _toggle(option, value == true),
                   );
                 },
               ),
             ),
-            const SizedBox(height: 12),
+            if (selected.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Выбрано: ${selected.length}',
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+              ),
             Row(
               children: [
                 if (_step > 0)
@@ -118,7 +148,7 @@ class _PlacesQuizPageState extends State<PlacesQuizPage> {
                 Expanded(
                   child: FilledButton(
                     onPressed:
-                        selected == null || _saving
+                        selected.isEmpty || _saving
                             ? null
                             : () {
                               if (_isLast) {

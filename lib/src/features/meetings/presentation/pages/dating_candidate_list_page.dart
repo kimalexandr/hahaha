@@ -1,5 +1,6 @@
 import 'package:eventa/src/core/app_runtime_config.dart';
 import 'package:eventa/src/core/di/injection.dart';
+import 'package:eventa/src/core/widgets/app_user_avatar.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
 import 'package:eventa/src/features/chat/presentation/pages/meeting_chat_page.dart';
 import 'package:eventa/src/features/home/data/remote/home_remote_storage.dart';
@@ -10,6 +11,9 @@ import 'package:eventa/src/features/meetings/domain/dating_rules.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
 import 'package:eventa/src/features/profile/data/profile_persistence.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
+import 'package:eventa/src/features/profile/domain/premium_limits.dart';
+import 'package:eventa/src/features/profile/presentation/pages/premium_paywall_page.dart';
+import 'package:eventa/src/features/profile/presentation/pages/public_profile_page.dart';
 import 'package:flutter/material.dart';
 
 class DatingCandidateListPage extends StatefulWidget {
@@ -103,10 +107,13 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
     final hooks = <String>[];
     for (final entry in a.placesQuizAnswers.entries) {
       final other = b.placesQuizAnswers[entry.key];
-      if (other != null && other == entry.value) {
-        hooks.add('Вы оба выбрали: ${entry.value}');
+      if (other == null || other.isEmpty) continue;
+      final shared =
+          entry.value.toSet().intersection(other.toSet()).toList()..sort();
+      for (final option in shared) {
+        hooks.add('Вы оба выбрали: $option');
+        if (hooks.length == 2) return hooks;
       }
-      if (hooks.length == 2) break;
     }
     return hooks;
   }
@@ -114,6 +121,19 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
   Future<void> _invite(_DatingCandidateView candidate) async {
     final uid = _uid;
     if (uid == null) return;
+    final me = await ProfilePersistence().read(uid);
+    final isPremium = me?.hasActivePremium == true;
+    final quota = PremiumQuotaService();
+    final allowed = await quota.canInvite(uid: uid, isPremium: isPremium);
+    if (!allowed) {
+      if (!mounted) return;
+      await openPremiumPaywall(
+        context,
+        reason:
+            'Лимит бесплатного аккаунта: не больше ${PremiumLimits.freeInvitesPerWeek} приглашений в неделю. Оформите Premium для безлимита.',
+      );
+      return;
+    }
     await _repo.invite(
       meetingId: widget.meeting.id,
       uid: candidate.profile.ownerId,
@@ -124,6 +144,7 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
       fromUserId: uid,
       toUserId: candidate.profile.ownerId,
     );
+    await quota.recordInvite(uid);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -236,37 +257,25 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
                                   (_, __) => const SizedBox(height: 10),
                               itemBuilder: (_, index) {
                                 final item = _candidates[index];
-                                final mainPhoto =
-                                    item.profile.profilePhotoUrls.isNotEmpty
-                                        ? item.profile.profilePhotoUrls[item
-                                            .profile
-                                            .mainPhotoIndex
-                                            .clamp(
-                                              0,
-                                              item
-                                                      .profile
-                                                      .profilePhotoUrls
-                                                      .length -
-                                                  1,
-                                            )]
-                                        : null;
+                                final mainPhoto = item.profile.mainPhotoUrl;
                                 return Card(
                                   child: ListTile(
-                                    leading:
-                                        mainPhoto == null
-                                            ? CircleAvatar(
-                                              child: Text(
-                                                item.profile.name.isEmpty
-                                                    ? '?'
-                                                    : item.profile.name[0]
-                                                        .toUpperCase(),
-                                              ),
-                                            )
-                                            : CircleAvatar(
-                                              backgroundImage: NetworkImage(
-                                                mainPhoto,
-                                              ),
-                                            ),
+                                    onTap: () {
+                                      openPublicProfile(
+                                        context,
+                                        profile: item.profile,
+                                      );
+                                    },
+                                    leading: AppUserAvatar(
+                                      photoUrl: mainPhoto,
+                                      name: item.profile.name,
+                                      onTap: () {
+                                        openPublicProfile(
+                                          context,
+                                          profile: item.profile,
+                                        );
+                                      },
+                                    ),
                                     title: Text(
                                       '${item.profile.name} · ${item.scorePercent}%',
                                     ),

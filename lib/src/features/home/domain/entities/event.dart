@@ -11,6 +11,8 @@ class Event {
   final String place;
   final String description;
   final List<String> photos;
+  final double? latitude;
+  final double? longitude;
   int likes;
   int going;
   int comments;
@@ -34,6 +36,8 @@ class Event {
     required this.place,
     required this.description,
     required this.photos,
+    this.latitude,
+    this.longitude,
     this.likes = 0,
     this.going = 0,
     this.comments = 0,
@@ -58,6 +62,8 @@ class Event {
     String? place,
     String? description,
     List<String>? photos,
+    double? latitude,
+    double? longitude,
     int? likes,
     int? going,
     int? comments,
@@ -81,6 +87,8 @@ class Event {
       place: place ?? this.place,
       description: description ?? this.description,
       photos: photos ?? this.photos,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       likes: likes ?? this.likes,
       going: going ?? this.going,
       comments: comments ?? this.comments,
@@ -107,6 +115,8 @@ class Event {
       'place': place,
       'description': description,
       'photos': photos,
+      'latitude': latitude,
+      'longitude': longitude,
       'likes': likes,
       'going': going,
       'comments': comments,
@@ -132,7 +142,9 @@ class Event {
       date: DateTime.parse(map['date'] as String),
       place: map['place'] as String,
       description: map['description'] as String,
-      photos: List<String>.from((map['photos'] as List<dynamic>)),
+      photos: List<String>.from((map['photos'] as List<dynamic>? ?? const [])),
+      latitude: (map['latitude'] as num?)?.toDouble(),
+      longitude: (map['longitude'] as num?)?.toDouble(),
       likes: map['likes'] as int? ?? 0,
       going: map['going'] as int? ?? 0,
       comments: map['comments'] as int? ?? 0,

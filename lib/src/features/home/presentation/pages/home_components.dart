@@ -7,15 +7,23 @@ import 'package:eventa/src/features/meetings/presentation/pages/campaign_detail_
 import 'package:eventa/src/features/meetings/presentation/pages/create_meeting_page.dart';
 import 'package:eventa/src/features/meetings/presentation/pages/meeting_created_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:eventa/src/core/media/photo_upload_service.dart';
+import 'package:eventa/src/core/widgets/app_user_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:eventa/src/features/home/domain/entities/event.dart';
+import 'package:eventa/src/features/home/domain/entities/event_comment.dart';
+import 'package:eventa/src/features/home/domain/event_geo.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 import 'package:eventa/src/features/profile/domain/profile_interest_catalog.dart';
 import 'package:eventa/src/features/profile/presentation/pages/phone_verify_page.dart';
 import 'package:eventa/src/features/profile/presentation/pages/places_quiz_page.dart';
+import 'package:eventa/src/features/profile/presentation/pages/premium_paywall_page.dart';
+import 'package:eventa/src/features/profile/presentation/pages/public_profile_page.dart';
+import 'package:eventa/src/features/profile/presentation/widgets/account_badges.dart';
+import 'package:eventa/src/features/profile/domain/premium_limits.dart';
 import 'package:eventa/src/features/push/presentation/pages/notification_settings_page.dart';
 import 'package:eventa/src/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:eventa/src/features/auth/presentation/bloc/auth_event.dart';
@@ -352,10 +360,13 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _lookingFor;
   DateTime? _birthDate;
   String? _zodiacSign;
-  late Map<String, String> _quizAnswers;
+  late Map<String, List<String>> _quizAnswers;
   late List<String> _photoUrls;
   int _mainPhotoIndex = 0;
-  final _photoController = TextEditingController();
+  bool _uploadingPhoto = false;
+  bool _isModerator = false;
+  int _invitesLeft = PremiumLimits.freeInvitesPerWeek;
+  int _createsLeft = PremiumLimits.freeCreatesPerWeek;
 
   @override
   void initState() {
@@ -376,6 +387,21 @@ class _ProfilePageState extends State<ProfilePage> {
       0,
       _photoUrls.isEmpty ? 0 : _photoUrls.length - 1,
     );
+    _isModerator = widget.initialProfile.isModerator;
+    _loadQuota();
+  }
+
+  Future<void> _loadQuota() async {
+    final uid = widget.initialProfile.ownerId;
+    final premium = widget.initialProfile.hasActivePremium;
+    final quota = PremiumQuotaService();
+    final invites = await quota.invitesLeft(uid: uid, isPremium: premium);
+    final creates = await quota.createsLeft(uid: uid, isPremium: premium);
+    if (!mounted) return;
+    setState(() {
+      _invitesLeft = invites;
+      _createsLeft = creates;
+    });
   }
 
   @override
@@ -383,7 +409,6 @@ class _ProfilePageState extends State<ProfilePage> {
     _nameController.dispose();
     _bioController.dispose();
     _cityController.dispose();
-    _photoController.dispose();
     super.dispose();
   }
 
@@ -402,14 +427,27 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
-  void _addPhotoUrl() {
-    final url = _photoController.text.trim();
-    if (url.isEmpty || _photoUrls.length >= 10) return;
-    setState(() {
-      _photoUrls.add(url);
-      _photoController.clear();
-      if (_photoUrls.length == 1) _mainPhotoIndex = 0;
-    });
+  Future<void> _pickPhoto() async {
+    if (_photoUrls.length >= 10 || _uploadingPhoto) return;
+    setState(() => _uploadingPhoto = true);
+    try {
+      final url = await PhotoUploadService().pickAndUpload(
+        ownerId: widget.initialProfile.ownerId,
+        folder: 'profiles',
+      );
+      if (url == null || !mounted) return;
+      setState(() {
+        _photoUrls.add(url);
+        if (_photoUrls.length == 1) _mainPhotoIndex = 0;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось добавить фото')),
+      );
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
   }
 
   void _saveProfile() {
@@ -434,6 +472,12 @@ class _ProfilePageState extends State<ProfilePage> {
         placesQuizAnswers: _quizAnswers,
         profilePhotoUrls: _photoUrls,
         mainPhotoIndex: _mainPhotoIndex,
+        isPremium: widget.initialProfile.isPremium,
+        isVerified:
+            widget.initialProfile.isVerified ||
+            widget.initialProfile.phoneVerified,
+        isModerator: _isModerator,
+        premiumUntil: widget.initialProfile.premiumUntil,
       ),
     );
   }
@@ -462,6 +506,10 @@ class _ProfilePageState extends State<ProfilePage> {
           placesQuizAnswers: _quizAnswers,
           profilePhotoUrls: _photoUrls,
           mainPhotoIndex: _mainPhotoIndex,
+          isPremium: widget.initialProfile.isPremium,
+          isVerified: true,
+          isModerator: _isModerator,
+          premiumUntil: widget.initialProfile.premiumUntil,
         ),
       );
     }
@@ -475,15 +523,14 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             CircleAvatar(
               radius: 14,
-              backgroundImage:
-                  _photoUrls.isEmpty
-                      ? null
-                      : NetworkImage(
-                        _photoUrls[_mainPhotoIndex.clamp(
-                          0,
-                          _photoUrls.length - 1,
-                        )],
-                      ),
+              backgroundImage: PhotoUploadService.imageProvider(
+                _photoUrls.isEmpty
+                    ? null
+                    : _photoUrls[_mainPhotoIndex.clamp(
+                      0,
+                      _photoUrls.length - 1,
+                    )],
+              ),
               child:
                   _photoUrls.isEmpty
                       ? Text(
@@ -495,14 +542,23 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(width: 8),
             const Text('Профиль'),
-            if (widget.initialProfile.phoneVerified) ...[
+            if (widget.initialProfile.phoneVerified ||
+                widget.initialProfile.isVerified) ...[
               const SizedBox(width: 8),
               const Icon(Icons.verified, color: Colors.green, size: 20),
               const SizedBox(width: 4),
               Text(
-                'Подтверждён',
+                'Верифицирован',
                 style: Theme.of(context).textTheme.labelMedium,
               ),
+            ],
+            if (widget.initialProfile.hasActivePremium) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.workspace_premium, color: Colors.amber, size: 20),
+            ],
+            if (_isModerator) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.shield, color: Colors.indigo, size: 20),
             ],
           ],
         ),
@@ -606,6 +662,72 @@ class _ProfilePageState extends State<ProfilePage> {
             value: _readyForMeeting,
             onChanged: (value) => setState(() => _readyForMeeting = value),
           ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Модератор'),
+            subtitle: const Text('Признак аккаунта модератора'),
+            value: _isModerator,
+            onChanged: (value) => setState(() => _isModerator = value),
+          ),
+          const SizedBox(height: 8),
+          AccountBadges(
+            profile: widget.initialProfile.copyWith(isModerator: _isModerator),
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    widget.initialProfile.hasActivePremium
+                        ? 'Premium активен'
+                        : 'Бесплатный аккаунт',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    widget.initialProfile.hasActivePremium
+                        ? 'Безлимит приглашений и создания групп'
+                        : 'Осталось на неделю: $_invitesLeft приглашений, $_createsLeft групп',
+                  ),
+                  const SizedBox(height: 10),
+                  if (!widget.initialProfile.hasActivePremium)
+                    FilledButton.icon(
+                      onPressed: () async {
+                        final nav = Navigator.of(context);
+                        final bought = await openPremiumPaywall(context);
+                        if (!bought || !mounted) return;
+                        final updated = widget.initialProfile.copyWith(
+                          name: _nameController.text.trim(),
+                          bio: _bioController.text.trim(),
+                          role: _role,
+                          city: _cityController.text.trim(),
+                          interests: _selectedInterests.toList()..sort(),
+                          readyForMeeting: _readyForMeeting,
+                          gender: _gender,
+                          birthDate: _birthDate,
+                          lookingFor: _lookingFor,
+                          zodiacSign: _zodiacSign,
+                          placesQuizAnswers: _quizAnswers,
+                          profilePhotoUrls: _photoUrls,
+                          mainPhotoIndex: _mainPhotoIndex,
+                          isModerator: _isModerator,
+                          isPremium: true,
+                          premiumUntil: DateTime.now().add(
+                            const Duration(days: 30),
+                          ),
+                        );
+                        nav.pop(updated);
+                      },
+                      icon: const Icon(Icons.workspace_premium),
+                      label: const Text('Купить Premium'),
+                    ),
+                ],
+              ),
+            ),
+          ),
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.quiz_outlined),
@@ -626,19 +748,20 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 8),
           Text('Фото (до 10)', style: Theme.of(context).textTheme.titleMedium),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _photoController,
-                  decoration: const InputDecoration(hintText: 'URL фото'),
-                ),
-              ),
-              IconButton(
-                onPressed: _photoUrls.length >= 10 ? null : _addPhotoUrl,
-                icon: const Icon(Icons.add_a_photo),
-              ),
-            ],
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _photoUrls.length >= 10 || _uploadingPhoto ? null : _pickPhoto,
+            icon:
+                _uploadingPhoto
+                    ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                    : const Icon(Icons.add_a_photo_outlined),
+            label: Text(
+              _uploadingPhoto ? 'Загрузка…' : 'Добавить из галереи',
+            ),
           ),
           if (_photoUrls.isNotEmpty)
             SizedBox(
@@ -647,10 +770,23 @@ class _ProfilePageState extends State<ProfilePage> {
                 scrollDirection: Axis.horizontal,
                 itemCount: _photoUrls.length,
                 itemBuilder: (_, index) {
+                  final provider = PhotoUploadService.imageProvider(
+                    _photoUrls[index],
+                  );
                   return GestureDetector(
                     onTap: () => setState(() => _mainPhotoIndex = index),
+                    onLongPress: () {
+                      setState(() {
+                        _photoUrls.removeAt(index);
+                        if (_mainPhotoIndex >= _photoUrls.length) {
+                          _mainPhotoIndex = _photoUrls.isEmpty
+                              ? 0
+                              : _photoUrls.length - 1;
+                        }
+                      });
+                    },
                     child: Container(
-                      margin: const EdgeInsets.only(right: 8),
+                      margin: const EdgeInsets.only(right: 8, top: 8),
                       decoration: BoxDecoration(
                         border: Border.all(
                           color:
@@ -663,24 +799,30 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          _photoUrls[index],
-                          width: 78,
-                          height: 78,
-                          fit: BoxFit.cover,
-                          errorBuilder:
-                              (_, __, ___) => Container(
-                                width: 78,
-                                height: 78,
-                                color: Colors.grey.shade300,
-                                child: const Icon(Icons.broken_image_outlined),
-                              ),
-                        ),
+                        child:
+                            provider == null
+                                ? Container(
+                                  width: 78,
+                                  height: 78,
+                                  color: Colors.grey.shade300,
+                                  child: const Icon(Icons.broken_image_outlined),
+                                )
+                                : Image(
+                                  image: provider,
+                                  width: 78,
+                                  height: 78,
+                                  fit: BoxFit.cover,
+                                ),
                       ),
                     ),
                   );
                 },
               ),
+            ),
+          if (_photoUrls.isNotEmpty)
+            Text(
+              'Нажмите — главное фото, долгое нажатие — удалить',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           if (!widget.initialProfile.phoneVerified)
             ListTile(
@@ -945,12 +1087,14 @@ class MyTicketsPage extends StatelessWidget {
 
 class CommentsPage extends StatefulWidget {
   final String eventTitle;
-  final List<String> initialComments;
-  final void Function(List<String>) onChanged;
+  final List<EventComment> initialComments;
+  final UserProfile currentUser;
+  final void Function(List<EventComment>) onChanged;
   const CommentsPage({
     super.key,
     required this.eventTitle,
     required this.initialComments,
+    required this.currentUser,
     required this.onChanged,
   });
   @override
@@ -958,12 +1102,12 @@ class CommentsPage extends StatefulWidget {
 }
 
 class _CommentsPageState extends State<CommentsPage> {
-  late List<String> _comments;
+  late List<EventComment> _comments;
   final TextEditingController _commentController = TextEditingController();
   @override
   void initState() {
     super.initState();
-    _comments = List<String>.from(widget.initialComments);
+    _comments = List<EventComment>.from(widget.initialComments);
   }
 
   @override
@@ -975,48 +1119,93 @@ class _CommentsPageState extends State<CommentsPage> {
   void _addComment() {
     final text = _commentController.text.trim();
     if (text.isEmpty) return;
-    setState(() => _comments.insert(0, text));
+    final comment = EventComment(
+      id: 'c-${DateTime.now().millisecondsSinceEpoch}',
+      authorId: widget.currentUser.ownerId,
+      authorName: widget.currentUser.name,
+      authorPhotoUrl: widget.currentUser.mainPhotoUrl,
+      text: text,
+      createdAt: DateTime.now(),
+    );
+    setState(() => _comments.insert(0, comment));
     widget.onChanged(_comments);
     _commentController.clear();
   }
 
   @override
   Widget build(BuildContext context) {
+    final timeFmt = DateFormat('d MMM, HH:mm', 'ru');
     return Scaffold(
       appBar: AppBar(title: Text('Обсуждение: ${widget.eventTitle}')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _commentController,
-                    decoration: const InputDecoration(
-                      hintText: 'Написать комментарий',
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child:
+                  _comments.isEmpty
+                      ? const Center(child: Text('Комментариев пока нет'))
+                      : ListView.separated(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: _comments.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final comment = _comments[index];
+                          return Card(
+                            child: ListTile(
+                              leading: AppUserAvatar(
+                                photoUrl: comment.authorPhotoUrl,
+                                name: comment.authorName,
+                                onTap: () {
+                                  openPublicProfile(
+                                    context,
+                                    userId: comment.authorId,
+                                    fallbackName: comment.authorName,
+                                    fallbackPhotoUrl: comment.authorPhotoUrl,
+                                  );
+                                },
+                              ),
+                              title: GestureDetector(
+                                onTap: () {
+                                  openPublicProfile(
+                                    context,
+                                    userId: comment.authorId,
+                                    fallbackName: comment.authorName,
+                                    fallbackPhotoUrl: comment.authorPhotoUrl,
+                                  );
+                                },
+                                child: Text(comment.authorName),
+                              ),
+                              subtitle: Text(
+                                '${comment.text}\n${timeFmt.format(comment.createdAt.toLocal())}',
+                              ),
+                              isThreeLine: true,
+                            ),
+                          );
+                        },
+                      ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _commentController,
+                      decoration: const InputDecoration(
+                        hintText: 'Написать комментарий',
+                      ),
+                      onSubmitted: (_) => _addComment(),
                     ),
                   ),
-                ),
-                IconButton(
-                  onPressed: _addComment,
-                  icon: const Icon(Icons.send),
-                ),
-              ],
+                  IconButton(
+                    onPressed: _addComment,
+                    icon: const Icon(Icons.send),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child:
-                _comments.isEmpty
-                    ? const Center(child: Text('Комментариев пока нет'))
-                    : ListView.builder(
-                      itemCount: _comments.length,
-                      itemBuilder:
-                          (context, index) =>
-                              ListTile(title: Text(_comments[index])),
-                    ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1326,6 +1515,15 @@ class _RetryableNetworkImageState extends State<RetryableNetworkImage> {
   void _retry() => setState(() => _retrySeed++);
   @override
   Widget build(BuildContext context) {
+    final local = PhotoUploadService.imageProvider(widget.url);
+    if (widget.url.startsWith('data:image') && local != null) {
+      return Image(
+        image: local,
+        fit: widget.fit,
+        width: widget.width,
+        height: widget.height,
+      );
+    }
     return CachedNetworkImage(
       imageUrl: widget.url,
       cacheKey: '${widget.url}#$_retrySeed',
@@ -1385,7 +1583,7 @@ class _AddEventFormState extends State<AddEventForm> {
   String _category = 'Музыка';
   DateTime? _selectedDate;
   final List<String> _photoUrls = [];
-  final _photoController = TextEditingController();
+  bool _uploadingPhoto = false;
   @override
   void initState() {
     super.initState();
@@ -1432,13 +1630,24 @@ class _AddEventFormState extends State<AddEventForm> {
     });
   }
 
-  void _addPhoto() {
-    final url = _photoController.text.trim();
-    if (url.isEmpty) return;
-    setState(() {
-      _photoUrls.add(url);
-      _photoController.clear();
-    });
+  Future<void> _pickPhoto() async {
+    if (_uploadingPhoto) return;
+    setState(() => _uploadingPhoto = true);
+    try {
+      final url = await PhotoUploadService().pickAndUpload(
+        ownerId: widget.ownerId,
+        folder: 'events',
+      );
+      if (url == null || !mounted) return;
+      setState(() => _photoUrls.add(url));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Не удалось добавить фото')),
+      );
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
   }
 
   void _submit() {
@@ -1451,13 +1660,13 @@ class _AddEventFormState extends State<AddEventForm> {
     }
     if (_photoUrls.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Добавьте хотя бы одно фото (URL) и нажмите иконку +'),
-        ),
+        const SnackBar(content: Text('Добавьте хотя бы одно фото из галереи')),
       );
       return;
     }
     final initial = widget.initialEvent;
+    final city = _cityController.text.trim();
+    final geo = coordinatesForCity(city);
     Navigator.pop(
       context,
       Event(
@@ -1466,13 +1675,15 @@ class _AddEventFormState extends State<AddEventForm> {
         ownerId: widget.ownerId,
         organizerName: initial?.organizerName ?? 'Вы',
         title: _titleController.text.trim(),
-        city: _cityController.text.trim(),
+        city: city,
         category: _category,
         price: double.tryParse(_priceController.text.trim()) ?? 0,
         date: _selectedDate!,
         place: _placeController.text.trim(),
         description: _descriptionController.text.trim(),
         photos: List.from(_photoUrls),
+        latitude: initial?.latitude ?? geo?.latitude,
+        longitude: initial?.longitude ?? geo?.longitude,
         likes: initial?.likes ?? 0,
         going: initial?.going ?? 0,
         comments: initial?.comments ?? 0,
@@ -1493,7 +1704,6 @@ class _AddEventFormState extends State<AddEventForm> {
     _placeController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
-    _photoController.dispose();
     super.dispose();
   }
 
@@ -1589,44 +1799,52 @@ class _AddEventFormState extends State<AddEventForm> {
               ],
             ),
             const SizedBox(height: 12),
-            const Text('Фото (URL):'),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _photoController,
-                    decoration: const InputDecoration(
-                      hintText: 'Вставьте ссылку на фото',
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add_a_photo),
-                  onPressed: _addPhoto,
-                ),
-              ],
+            const Text('Фото:'),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _uploadingPhoto ? null : _pickPhoto,
+              icon:
+                  _uploadingPhoto
+                      ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : const Icon(Icons.add_a_photo_outlined),
+              label: Text(
+                _uploadingPhoto ? 'Загрузка…' : 'Добавить из галереи',
+              ),
             ),
             SizedBox(
               height: 80,
-              child: ListView(
+              child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                children:
-                    _photoUrls
-                        .map(
-                          (url) => Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: RetryableNetworkImage(
-                                url: url,
+                itemCount: _photoUrls.length,
+                itemBuilder: (_, index) {
+                  final provider = PhotoUploadService.imageProvider(
+                    _photoUrls[index],
+                  );
+                  return Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child:
+                          provider == null
+                              ? Container(
+                                width: 70,
+                                height: 70,
+                                color: Colors.grey.shade300,
+                                child: const Icon(Icons.broken_image_outlined),
+                              )
+                              : Image(
+                                image: provider,
                                 width: 70,
                                 height: 70,
                                 fit: BoxFit.cover,
                               ),
-                            ),
-                          ),
-                        )
-                        .toList(),
+                    ),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 20),

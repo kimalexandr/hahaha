@@ -125,6 +125,8 @@ class EventAttendeeRemoteStorage {
                       data['sentAt'] is Timestamp
                           ? (data['sentAt'] as Timestamp).toDate()
                           : DateTime.now(),
+                  senderName: data['senderName'] as String?,
+                  senderPhotoUrl: data['senderPhotoUrl'] as String?,
                 );
               }).toList(),
         );
@@ -134,11 +136,15 @@ class EventAttendeeRemoteStorage {
     required String eventId,
     required String senderId,
     required String text,
+    String? senderName,
+    String? senderPhotoUrl,
   }) async {
     await _eventChat(eventId).add({
       'senderId': senderId,
       'text': text,
       'sentAt': FieldValue.serverTimestamp(),
+      if (senderName != null) 'senderName': senderName,
+      if (senderPhotoUrl != null) 'senderPhotoUrl': senderPhotoUrl,
     });
   }
 }

@@ -5,6 +5,8 @@ import 'package:eventa/src/features/meetings/domain/dating_rules.dart';
 import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
 import 'package:eventa/src/features/profile/data/profile_persistence.dart';
+import 'package:eventa/src/features/profile/domain/premium_limits.dart';
+import 'package:eventa/src/features/profile/presentation/pages/premium_paywall_page.dart';
 import 'package:eventa/src/features/venues/domain/entities/venue.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -125,6 +127,24 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
       final auth = getIt<AuthRepository>();
       final uid = await auth.currentUserId() ?? 'user-1';
       final profile = await ProfilePersistence().read(uid);
+      final isPremium = profile?.hasActivePremium == true;
+      final quota = PremiumQuotaService();
+      final canCreate = await quota.canCreateMeeting(
+        uid: uid,
+        isPremium: isPremium,
+      );
+      if (!canCreate) {
+        if (!mounted) return;
+        final bought = await openPremiumPaywall(
+          context,
+          reason:
+              'Лимит бесплатного аккаунта: не больше ${PremiumLimits.freeCreatesPerWeek} групп/встреч в неделю. Оформите Premium, чтобы создавать без ограничений.',
+        );
+        if (!bought || !mounted) {
+          setState(() => _saving = false);
+          return;
+        }
+      }
       if (_meetingKind == MeetingKind.dating) {
         final birthDate = profile?.birthDate;
         if (birthDate == null ||
@@ -192,6 +212,7 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
       );
       final meeting = await _repo.create(draft);
       await _repo.upsertLocalMirror(meeting);
+      await PremiumQuotaService().recordCreate(uid);
       if (!mounted) return;
       Navigator.of(context).pop(meeting);
     } catch (_) {

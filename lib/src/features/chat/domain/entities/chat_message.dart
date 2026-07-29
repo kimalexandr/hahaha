@@ -4,6 +4,8 @@ class ChatMessage {
   final String senderId;
   final String text;
   final DateTime createdAt;
+  final String? senderName;
+  final String? senderPhotoUrl;
 
   const ChatMessage({
     required this.id,
@@ -11,6 +13,8 @@ class ChatMessage {
     required this.senderId,
     required this.text,
     required this.createdAt,
+    this.senderName,
+    this.senderPhotoUrl,
   });
 
   Map<String, dynamic> toMap() {
@@ -20,6 +24,8 @@ class ChatMessage {
       'senderId': senderId,
       'text': text,
       'createdAt': createdAt.toIso8601String(),
+      'senderName': senderName,
+      'senderPhotoUrl': senderPhotoUrl,
     };
   }
 
@@ -32,6 +38,8 @@ class ChatMessage {
       createdAt: DateTime.parse(
         map['createdAt'] as String? ?? DateTime.now().toIso8601String(),
       ),
+      senderName: map['senderName'] as String?,
+      senderPhotoUrl: map['senderPhotoUrl'] as String?,
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:eventa/src/features/home/domain/entities/event.dart';
+import 'package:eventa/src/features/home/domain/entities/event_comment.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -42,22 +43,33 @@ class HomeLocalStorage {
     return UserProfile.fromMap(Map<dynamic, dynamic>.from(raw));
   }
 
-  Future<void> saveComments(Map<String, List<String>> comments) async {
+  Future<void> saveComments(Map<String, List<EventComment>> comments) async {
     final box = await _openBox();
-    final serializable = comments.map((key, value) => MapEntry(key, value));
+    final serializable = comments.map(
+      (key, value) => MapEntry(key, value.map((e) => e.toMap()).toList()),
+    );
     await box.put(_commentsKey, serializable);
   }
 
-  Future<Map<String, List<String>>> readComments() async {
+  Future<Map<String, List<EventComment>>> readComments() async {
     final box = await _openBox();
     final raw = box.get(_commentsKey);
     if (raw is! Map) return {};
-    return raw.map(
-      (key, value) => MapEntry(
-        key.toString(),
-        List<String>.from((value as List<dynamic>).map((e) => e.toString())),
-      ),
-    );
+    final result = <String, List<EventComment>>{};
+    raw.forEach((key, value) {
+      if (value is! List) return;
+      final list = <EventComment>[];
+      for (var i = 0; i < value.length; i++) {
+        final item = value[i];
+        if (item is Map) {
+          list.add(EventComment.fromMap(Map<dynamic, dynamic>.from(item)));
+        } else {
+          list.add(EventComment.fromLegacy(item.toString(), index: i));
+        }
+      }
+      result[key.toString()] = list;
+    });
+    return result;
   }
 
   Future<void> saveNotifications(List<String> notifications) async {

@@ -1,9 +1,13 @@
 import 'dart:async';
 
+import 'package:eventa/src/core/widgets/app_user_avatar.dart';
 import 'package:eventa/src/features/chat/domain/entities/chat_message.dart';
 import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
+import 'package:eventa/src/features/profile/data/profile_persistence.dart';
+import 'package:eventa/src/features/profile/presentation/pages/public_profile_page.dart';
 import 'package:eventa/src/features/push/presentation/push_ui_context.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class MeetingChatPage extends StatefulWidget {
   const MeetingChatPage({
@@ -27,11 +31,14 @@ class _MeetingChatPageState extends State<MeetingChatPage> {
   StreamSubscription<List<ChatMessage>>? _sub;
   List<ChatMessage> _messages = [];
   bool _loading = true;
+  String _myName = 'Я';
+  String? _myPhoto;
 
   @override
   void initState() {
     super.initState();
     PushUiContext.openMeetingChatId = widget.meetingId;
+    _loadMe();
     _sub = _repo
         .watchMeetingChat(widget.meetingId)
         .listen(
@@ -47,6 +54,15 @@ class _MeetingChatPageState extends State<MeetingChatPage> {
             setState(() => _loading = false);
           },
         );
+  }
+
+  Future<void> _loadMe() async {
+    final me = await ProfilePersistence().read(widget.myUserId);
+    if (!mounted || me == null) return;
+    setState(() {
+      _myName = me.name;
+      _myPhoto = me.mainPhotoUrl;
+    });
   }
 
   @override
@@ -67,8 +83,9 @@ class _MeetingChatPageState extends State<MeetingChatPage> {
       meetingId: widget.meetingId,
       senderId: widget.myUserId,
       text: text,
+      senderName: _myName,
+      senderPhotoUrl: _myPhoto,
     );
-    // В Hive stream одноразовый — перезагружаем.
     final latest = await _repo.watchMeetingChat(widget.meetingId).first;
     if (!mounted) return;
     setState(() => _messages = latest);
@@ -76,6 +93,7 @@ class _MeetingChatPageState extends State<MeetingChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    final timeFmt = DateFormat('HH:mm', 'ru');
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
       body: Column(
@@ -92,33 +110,95 @@ class _MeetingChatPageState extends State<MeetingChatPage> {
                       itemBuilder: (context, index) {
                         final msg = _messages[index];
                         final mine = msg.senderId == widget.myUserId;
+                        final name = msg.senderName?.isNotEmpty == true
+                            ? msg.senderName!
+                            : (mine ? _myName : 'Участник');
                         return Align(
                           alignment:
                               mine
                                   ? Alignment.centerRight
                                   : Alignment.centerLeft,
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 4),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.sizeOf(context).width * 0.82,
                             ),
-                            decoration: BoxDecoration(
-                              color:
-                                  mine
-                                      ? Theme.of(
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    mine
+                                        ? Theme.of(
+                                          context,
+                                        ).colorScheme.primaryContainer
+                                        : Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  AppUserAvatar(
+                                    photoUrl: msg.senderPhotoUrl ?? (mine ? _myPhoto : null),
+                                    name: name,
+                                    radius: 16,
+                                    onTap: () {
+                                      openPublicProfile(
                                         context,
-                                      ).colorScheme.primaryContainer
-                                      : Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(12),
+                                        userId: msg.senderId,
+                                        fallbackName: name,
+                                        fallbackPhotoUrl:
+                                            msg.senderPhotoUrl ??
+                                            (mine ? _myPhoto : null),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          name,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(msg.text),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          timeFmt.format(msg.createdAt.toLocal()),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelSmall
+                                              ?.copyWith(
+                                                color:
+                                                    Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            child: Text(msg.text),
                           ),
                         );
                       },
                     ),
           ),
           SafeArea(
+            top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
               child: Row(

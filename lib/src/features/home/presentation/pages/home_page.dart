@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:eventa/src/features/home/domain/entities/event.dart';
+import 'package:eventa/src/features/home/domain/entities/event_comment.dart';
 import 'package:eventa/src/features/home/data/local/home_local_storage.dart';
 import 'package:eventa/src/features/home/data/remote/home_remote_storage.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 import 'package:eventa/src/features/profile/data/profile_persistence.dart';
 import 'package:eventa/src/features/home/presentation/pages/home_components.dart';
+import 'package:eventa/src/features/home/presentation/pages/events_map_page.dart';
 import 'package:eventa/src/core/app_runtime_config.dart';
 import 'package:eventa/src/core/di/injection.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
@@ -53,6 +55,8 @@ class _HomePageState extends State<HomePage> {
         'https://images.unsplash.com/photo-1465101046530-73398c7f28ca',
         'https://images.unsplash.com/photo-1519125323398-675f0ddb6308',
       ],
+      latitude: 43.238949,
+      longitude: 76.945465,
       likes: 12,
       going: 5,
       comments: 3,
@@ -74,6 +78,8 @@ class _HomePageState extends State<HomePage> {
         'https://images.unsplash.com/photo-1515168833906-d2a3b82b3029',
         'https://images.unsplash.com/photo-1465101178521-c1a9136a3b99',
       ],
+      latitude: 51.169392,
+      longitude: 71.449074,
       likes: 7,
       going: 2,
       comments: 1,
@@ -82,9 +88,32 @@ class _HomePageState extends State<HomePage> {
   ];
   List<Event> _filteredEvents = [];
   bool _initialLoading = true;
-  final Map<String, List<String>> _eventComments = {
-    'event-1': ['Классный лайн-ап!', 'Кто еще идет?'],
-    'event-2': ['Будет запись выступлений?'],
+  final Map<String, List<EventComment>> _eventComments = {
+    'event-1': [
+      EventComment(
+        id: 'c1',
+        authorId: 'demo',
+        authorName: 'Алина',
+        text: 'Классный лайн-ап!',
+        createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+      ),
+      EventComment(
+        id: 'c2',
+        authorId: 'demo2',
+        authorName: 'Макс',
+        text: 'Кто еще идет?',
+        createdAt: DateTime.now().subtract(const Duration(hours: 1)),
+      ),
+    ],
+    'event-2': [
+      EventComment(
+        id: 'c3',
+        authorId: 'demo3',
+        authorName: 'Данияр',
+        text: 'Будет запись выступлений?',
+        createdAt: DateTime.now().subtract(const Duration(minutes: 40)),
+      ),
+    ],
   };
   UserProfile _profile = UserProfile(
     id: 'profile-1',
@@ -120,7 +149,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _loadState() async {
     List<Event> savedEvents = [];
     UserProfile? savedProfile;
-    Map<String, List<String>> savedComments = {};
+    Map<String, List<EventComment>> savedComments = {};
     final savedNotifications = await _localStorage.readNotifications();
 
     try {
@@ -383,9 +412,10 @@ class _HomePageState extends State<HomePage> {
         builder:
             (_) => CommentsPage(
               eventTitle: event.title,
-              initialComments: List<String>.from(
+              initialComments: List<EventComment>.from(
                 _eventComments[event.id] ?? [],
               ),
+              currentUser: _profile,
               onChanged: (updatedComments) {
                 setState(() {
                   _eventComments[event.id] = updatedComments;
@@ -538,7 +568,9 @@ class _HomePageState extends State<HomePage> {
 
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.only(bottom: 80),
+      padding: EdgeInsets.only(
+        bottom: 80 + MediaQuery.paddingOf(context).bottom,
+      ),
       itemCount: items.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index >= items.length) {
@@ -628,6 +660,21 @@ class _HomePageState extends State<HomePage> {
         centerTitle: true,
         actions: [
           IconButton(
+            tooltip: 'Карта',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder:
+                      (_) => EventsMapPage(
+                        events: List<Event>.from(_events),
+                        onOpenEvent: _openEventDetails,
+                      ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.map_outlined),
+          ),
+          IconButton(
             tooltip: 'Встречи',
             onPressed: () {
               Navigator.of(context).push(
@@ -661,7 +708,9 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Column(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
         children: [
           if (_selectedTabIndex == 0) ...[
             Padding(
@@ -730,21 +779,22 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed:
-            (_selectedTabIndex == 0 && _profile.role == 'organizer')
-                ? _showAddEventPage
-                : null,
-        icon: const Icon(Icons.add),
-        label: Text(
-          _profile.role == 'organizer'
-              ? 'Добавить мероприятие'
-              : 'Только для организатора',
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      bottomNavigationBar: BottomNavigationBar(
+      floatingActionButton:
+          (_selectedTabIndex == 0 && _profile.role == 'organizer')
+              ? FloatingActionButton.extended(
+                onPressed: _showAddEventPage,
+                icon: const Icon(Icons.add),
+                label: const Text('Добавить мероприятие'),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              )
+              : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: BottomNavigationBar(
         currentIndex: _selectedTabIndex,
         type: BottomNavigationBarType.fixed,
         backgroundColor: cs.surface,
@@ -780,6 +830,7 @@ class _HomePageState extends State<HomePage> {
             label: 'Активность',
           ),
         ],
+      ),
       ),
     );
   }

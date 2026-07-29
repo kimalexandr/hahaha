@@ -12,6 +12,13 @@ GoogleSignIn createGoogleSignIn() {
 /// Сообщение для пользователя при типичных сбоях Google Sign-In на Android.
 String googleSignInUserMessage(Object error) {
   final text = error.toString();
+  if (text.contains('ApiException: 10') ||
+      text.contains('DEVELOPER_ERROR') ||
+      text.contains('developer_error')) {
+    return 'Ошибка настройки Google Sign-In (код 10). Добавьте SHA-1/SHA-256 '
+        'подписи APK в Firebase → Project settings → Your apps, скачайте '
+        'новый google-services.json и пересоберите приложение. Детали: $text';
+  }
   if (text.contains('certificate hash') ||
       text.contains('INVALID_CERT_HASH') ||
       text.contains('invalid cert')) {
@@ -25,7 +32,9 @@ String googleSignInUserMessage(Object error) {
     return 'Не удалось войти через Google. Проверьте SHA CI в Firebase, '
         'google-services.json и APK из последней сборки Actions. Детали: $text';
   }
-  if (text.contains('sign_in_canceled') || text.contains('canceled')) {
+  if (text.contains('sign_in_canceled') ||
+      text.contains('canceled') ||
+      text.contains('cancelled')) {
     return 'Вход через Google отменён.';
   }
   return 'Ошибка входа через Google: $text';

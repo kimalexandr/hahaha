@@ -50,5 +50,20 @@
 		<string>fetch</string>
 		<string>remote-notification</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Нужен доступ к галерее, чтобы добавить фото профиля и мероприятия</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Нужен доступ к камере для фото профиля</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.572832146583-3c8pecftaj1cjmll91i246eg3eo0gp2u</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

@@ -63,7 +63,13 @@ class MockAuthRepository implements AuthRepository {
 
   @override
   Future<void> signInWithGoogle() async {
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(milliseconds: 600));
+    // Новый Google-вход в демо — как регистрация: нужен онбординг профиля,
+    // если профиль ещё не заполняли в этой сессии.
+    final existing = await _persistence.read(mockUserId);
+    if (existing == null || existing.interests.isEmpty) {
+      _profileCreated = false;
+    }
     _authStateController.add(true);
   }
 
