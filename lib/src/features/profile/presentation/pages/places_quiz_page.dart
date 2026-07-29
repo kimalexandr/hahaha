@@ -83,11 +83,12 @@ class _PlacesQuizPageState extends State<PlacesQuizPage> {
     final progress = (_step + 1) / placesQuizQuestions.length;
     return Scaffold(
       appBar: AppBar(title: const Text('Квиз по местам')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             LinearProgressIndicator(value: progress),
             const SizedBox(height: 12),
             Text(
@@ -171,6 +172,7 @@ class _PlacesQuizPageState extends State<PlacesQuizPage> {
               ],
             ),
           ],
+          ),
         ),
       ),
     );

@@ -19,8 +19,6 @@ class AccountBadges extends StatelessWidget {
         ),
       if (profile.isVerified || profile.phoneVerified)
         _badge(context, Icons.verified, 'Верифицирован', Colors.green.shade700),
-      if (profile.isModerator)
-        _badge(context, Icons.shield, 'Модератор', Colors.indigo.shade600),
     ];
     if (chips.isEmpty) return const SizedBox.shrink();
     return Wrap(spacing: 8, runSpacing: 8, children: chips);

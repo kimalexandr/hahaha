@@ -262,6 +262,7 @@ class _HomePageState extends State<HomePage> {
           _events
               .where(
                 (event) =>
+                    !event.isHidden &&
                     (event.title.toLowerCase().contains(query) ||
                         event.place.toLowerCase().contains(query) ||
                         event.description.toLowerCase().contains(query)) &&
@@ -487,7 +488,10 @@ class _HomePageState extends State<HomePage> {
     final index = _events.indexWhere((item) => item.id == event.id);
     if (index == -1) return;
     setState(() {
-      _events[index] = edited.copyWith(isCreatedByMe: true);
+      _events[index] = edited.copyWith(
+        isCreatedByMe: true,
+        isHidden: event.isHidden,
+      );
       _notifications.insert(0, 'Мероприятие обновлено: ${edited.title}');
     });
     _applyFilters();
@@ -509,6 +513,24 @@ class _HomePageState extends State<HomePage> {
         // Local state already updated and persisted.
       }
     });
+  }
+
+  void _toggleEventHidden(Event event) {
+    if (_profile.role != 'organizer') return;
+    final index = _events.indexWhere((item) => item.id == event.id);
+    if (index == -1) return;
+    setState(() {
+      final hidden = !event.isHidden;
+      _events[index] = event.copyWith(isHidden: hidden);
+      _notifications.insert(
+        0,
+        hidden
+            ? 'Мероприятие скрыто: ${event.title}'
+            : 'Мероприятие снова в ленте: ${event.title}',
+      );
+    });
+    _applyFilters();
+    _persistState();
   }
 
   void _toggleTicketUsed(Event event) {
@@ -622,9 +644,11 @@ class _HomePageState extends State<HomePage> {
       case 1:
         return MyEventsPage(
           events: _myEvents,
+          isOrganizer: _profile.role == 'organizer',
           onOpenEvent: _openEventDetails,
           onEditEvent: _editEvent,
           onDeleteEvent: _deleteEvent,
+          onToggleHidden: _toggleEventHidden,
         );
       case 2:
         return FavoritesPage(
@@ -666,7 +690,8 @@ class _HomePageState extends State<HomePage> {
                 MaterialPageRoute(
                   builder:
                       (_) => EventsMapPage(
-                        events: List<Event>.from(_events),
+                        events:
+                            _events.where((e) => !e.isHidden).toList(),
                         onOpenEvent: _openEventDetails,
                       ),
                 ),

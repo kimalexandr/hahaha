@@ -364,7 +364,6 @@ class _ProfilePageState extends State<ProfilePage> {
   late List<String> _photoUrls;
   int _mainPhotoIndex = 0;
   bool _uploadingPhoto = false;
-  bool _isModerator = false;
   int _invitesLeft = PremiumLimits.freeInvitesPerWeek;
   int _createsLeft = PremiumLimits.freeCreatesPerWeek;
 
@@ -387,7 +386,6 @@ class _ProfilePageState extends State<ProfilePage> {
       0,
       _photoUrls.isEmpty ? 0 : _photoUrls.length - 1,
     );
-    _isModerator = widget.initialProfile.isModerator;
     _loadQuota();
   }
 
@@ -476,7 +474,6 @@ class _ProfilePageState extends State<ProfilePage> {
         isVerified:
             widget.initialProfile.isVerified ||
             widget.initialProfile.phoneVerified,
-        isModerator: _isModerator,
         premiumUntil: widget.initialProfile.premiumUntil,
       ),
     );
@@ -508,7 +505,6 @@ class _ProfilePageState extends State<ProfilePage> {
           mainPhotoIndex: _mainPhotoIndex,
           isPremium: widget.initialProfile.isPremium,
           isVerified: true,
-          isModerator: _isModerator,
           premiumUntil: widget.initialProfile.premiumUntil,
         ),
       );
@@ -560,15 +556,12 @@ class _ProfilePageState extends State<ProfilePage> {
                 size: 20,
               ),
             ],
-            if (_isModerator) ...[
-              const SizedBox(width: 8),
-              const Icon(Icons.shield, color: Colors.indigo, size: 20),
-            ],
           ],
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: SafeArea(
+        child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         children: [
           TextField(
             controller: _nameController,
@@ -666,17 +659,8 @@ class _ProfilePageState extends State<ProfilePage> {
             value: _readyForMeeting,
             onChanged: (value) => setState(() => _readyForMeeting = value),
           ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Модератор'),
-            subtitle: const Text('Признак аккаунта модератора'),
-            value: _isModerator,
-            onChanged: (value) => setState(() => _isModerator = value),
-          ),
           const SizedBox(height: 8),
-          AccountBadges(
-            profile: widget.initialProfile.copyWith(isModerator: _isModerator),
-          ),
+          AccountBadges(profile: widget.initialProfile),
           const SizedBox(height: 8),
           Card(
             child: Padding(
@@ -717,7 +701,6 @@ class _ProfilePageState extends State<ProfilePage> {
                           placesQuizAnswers: _quizAnswers,
                           profilePhotoUrls: _photoUrls,
                           mainPhotoIndex: _mainPhotoIndex,
-                          isModerator: _isModerator,
                           isPremium: true,
                           premiumUntil: DateTime.now().add(
                             const Duration(days: 30),
@@ -876,21 +859,26 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
+      ),
     );
   }
 }
 
 class MyEventsPage extends StatelessWidget {
   final List<Event> events;
+  final bool isOrganizer;
   final void Function(Event) onOpenEvent;
   final void Function(Event) onEditEvent;
   final void Function(Event) onDeleteEvent;
+  final void Function(Event) onToggleHidden;
   const MyEventsPage({
     super.key,
     required this.events,
+    required this.isOrganizer,
     required this.onOpenEvent,
     required this.onEditEvent,
     required this.onDeleteEvent,
+    required this.onToggleHidden,
   });
   @override
   Widget build(BuildContext context) {
@@ -898,9 +886,12 @@ class MyEventsPage extends StatelessWidget {
       appBar: AppBar(title: const Text('Мои мероприятия')),
       body:
           events.isEmpty
-              ? const EmptyStateView(
+              ? EmptyStateView(
                 icon: Icons.event_busy_outlined,
-                title: 'Вы еще не добавили ни одного мероприятия',
+                title:
+                    isOrganizer
+                        ? 'Вы еще не добавили ни одного мероприятия'
+                        : 'Раздел доступен организаторам',
               )
               : ListView.builder(
                 padding: const EdgeInsets.all(12),
@@ -910,28 +901,42 @@ class MyEventsPage extends StatelessWidget {
                   return ListTile(
                     title: Text(event.title),
                     subtitle: Text(
-                      DateFormat('d MMM, HH:mm', 'ru').format(event.date),
+                      [
+                        DateFormat('d MMM, HH:mm', 'ru').format(event.date),
+                        if (event.isHidden) 'Скрыто',
+                      ].join(' · '),
                     ),
                     trailing: PopupMenuButton<String>(
                       onSelected: (value) {
                         if (value == 'open') onOpenEvent(event);
                         if (value == 'edit') onEditEvent(event);
+                        if (value == 'hide') onToggleHidden(event);
                         if (value == 'delete') onDeleteEvent(event);
                       },
                       itemBuilder:
-                          (_) => const [
-                            PopupMenuItem(
+                          (_) => [
+                            const PopupMenuItem(
                               value: 'open',
                               child: Text('Открыть'),
                             ),
-                            PopupMenuItem(
-                              value: 'edit',
-                              child: Text('Редактировать'),
-                            ),
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Text('Удалить'),
-                            ),
+                            if (isOrganizer) ...[
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Text('Редактировать'),
+                              ),
+                              PopupMenuItem(
+                                value: 'hide',
+                                child: Text(
+                                  event.isHidden
+                                      ? 'Показать в ленте'
+                                      : 'Скрыть',
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Text('Удалить'),
+                              ),
+                            ],
                           ],
                     ),
                     onTap: () => onOpenEvent(event),

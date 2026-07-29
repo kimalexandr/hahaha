@@ -44,6 +44,61 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<void> signInWithGoogle() async {
+    Object? pluginError;
+    try {
+      await _signInWithGooglePlugin();
+      return;
+    } catch (e, st) {
+      pluginError = e;
+      debugPrint('GoogleSignIn plugin failed: $e\n$st');
+      if (e is FirebaseAuthException && e.code == 'google-sign-in-cancelled') {
+        rethrow;
+      }
+      if (!shouldFallbackToFirebaseGoogleProvider(e)) {
+        if (e is FirebaseAuthException) rethrow;
+        throw FirebaseAuthException(
+          code: 'google-sign-in-failed',
+          message: googleSignInUserMessage(e),
+        );
+      }
+    }
+
+    try {
+      debugPrint('Falling back to FirebaseAuth.signInWithProvider(Google)');
+      await _signInWithGoogleProvider();
+    } catch (e, st) {
+      debugPrint('Google signInWithProvider failed: $e\n$st');
+      if (e is FirebaseAuthException) {
+        if (e.code == 'web-context-canceled' ||
+            e.code == 'canceled' ||
+            e.code == 'user-cancelled') {
+          throw FirebaseAuthException(
+            code: 'google-sign-in-cancelled',
+            message: 'Вход через Google отменён.',
+          );
+        }
+        if (e.code == 'account-exists-with-different-credential') {
+          throw FirebaseAuthException(
+            code: e.code,
+            message:
+                'Этот email уже зарегистрирован другим способом '
+                '(обычно email/пароль). Войдите тем же способом или '
+                'восстановите пароль.',
+          );
+        }
+        throw FirebaseAuthException(
+          code: e.code,
+          message: googleSignInUserMessage(pluginError),
+        );
+      }
+      throw FirebaseAuthException(
+        code: 'google-sign-in-failed',
+        message: googleSignInUserMessage(pluginError),
+      );
+    }
+  }
+
+  Future<void> _signInWithGooglePlugin() async {
     try {
       // Сброс зависшей сессии — частая причина «отмены» / reauth failed.
       await _googleSignIn.signOut();
@@ -98,6 +153,13 @@ class FirebaseAuthRepository implements AuthRepository {
       }
       rethrow;
     }
+  }
+
+  Future<void> _signInWithGoogleProvider() async {
+    final provider = GoogleAuthProvider()
+      ..addScope('email')
+      ..addScope('profile');
+    await _firebaseAuth.signInWithProvider(provider);
   }
 
   @override

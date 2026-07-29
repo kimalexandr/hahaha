@@ -27,6 +27,7 @@ jobs:
           cache: true
 
       # Один и тот же debug.keystore на всех сборках CI → стабильный SHA для Firebase Google Sign-In.
+      # Если кеш пропал — можно положить base64 keystore в secret ANDROID_CI_KEYSTORE_BASE64.
       - name: Cache Android debug keystore
         uses: actions/cache@v4
         with:
@@ -34,13 +35,38 @@ jobs:
           key: android-debug-keystore-${{ runner.os }}-eventa-v1
 
       - name: Ensure Android debug keystore exists
+        env:
+          ANDROID_CI_KEYSTORE_BASE64: ${{ secrets.ANDROID_CI_KEYSTORE_BASE64 }}
         run: |
           mkdir -p ~/.android
           if [ ! -f ~/.android/debug.keystore ]; then
-            keytool -genkey -v -keystore ~/.android/debug.keystore \
-              -storepass android -alias androiddebugkey -keypass android \
-              -keyalg RSA -keysize 2048 -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US"
+            if [ -n "$ANDROID_CI_KEYSTORE_BASE64" ]; then
+              echo "$ANDROID_CI_KEYSTORE_BASE64" | base64 -d > ~/.android/debug.keystore
+              echo "Restored CI keystore from ANDROID_CI_KEYSTORE_BASE64 secret"
+            else
+              echo "::warning::CI debug.keystore missing from cache — generating a NEW one."
+              echo "::warning::Google Sign-In (код 10) сломается, пока новый SHA не добавят в Firebase."
+              keytool -genkey -v -keystore ~/.android/debug.keystore \
+                -storepass android -alias androiddebugkey -keypass android \
+                -keyalg RSA -keysize 2048 -validity 10000 \
+                -dname "CN=Android Debug,O=Android,C=US"
+            fi
+          fi
+
+      # Актуальный SHA CI (keystore от 28 Jul 2026). При смене keystore — обновить и Firebase.
+      - name: Verify CI signing SHA matches Firebase
+        env:
+          EXPECTED_CI_SHA1: "EA:85:26:2D:C7:55:2C:C2:AD:8B:09:D7:AC:0F:52:1E:B9:FC:BA:C3"
+        run: |
+          ACTUAL="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" \
+            -alias androiddebugkey -storepass android -keypass android 2>/dev/null \
+            | awk -F' ' '/SHA1:/{print $2; exit}')"
+          echo "Expected SHA1: $EXPECTED_CI_SHA1"
+          echo "Actual SHA1:   $ACTUAL"
+          if [ "$ACTUAL" != "$EXPECTED_CI_SHA1" ]; then
+            echo "::error::CI keystore SHA изменился. Добавьте Actual SHA1 в Firebase (Android app fingerprints),"
+            echo "::error::скачайте google-services.json, закоммитьте и обновите EXPECTED_CI_SHA1 в android-ci.yml."
+            exit 1
           fi
 
       - run: flutter pub get
@@ -80,11 +106,12 @@ jobs:
             echo "## SHA для Firebase (APK с GitHub Actions)"
             echo "Проект: **eventus-f450f**, package: **com.eventus.app**"
             echo ""
-            echo 'Добавьте в Firebase → Android app → **Add fingerprint** и в Google Cloud → **Android OAuth client**:'
+            echo "Для APK из Actions нужен SHA (должен совпадать с Firebase):"
             echo ""
             grep -E 'SHA1:|SHA256:' signing-report-ci.log | head -10 || true
             echo ""
-            echo "После добавления: скачайте новый **google-services.json** → \`android/app/\`, закоммитьте, дождитесь новой сборки."
+            echo "Если SHA сменился: Firebase → Add fingerprint → новый google-services.json → commit → rebuild."
+            echo "Чтобы keystore не терялся: secret \`ANDROID_CI_KEYSTORE_BASE64\` (base64 от ~/.android/debug.keystore)."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload signing report

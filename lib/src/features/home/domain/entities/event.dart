@@ -22,6 +22,8 @@ class Event {
   bool hasTicket;
   bool isTicketUsed;
   bool isCreatedByMe;
+  /// Скрыто из публичной ленты — только для организатора.
+  bool isHidden;
 
   Event({
     required this.id,
@@ -47,6 +49,7 @@ class Event {
     this.hasTicket = false,
     this.isTicketUsed = false,
     this.isCreatedByMe = false,
+    this.isHidden = false,
   });
 
   Event copyWith({
@@ -73,6 +76,7 @@ class Event {
     bool? hasTicket,
     bool? isTicketUsed,
     bool? isCreatedByMe,
+    bool? isHidden,
   }) {
     return Event(
       id: id ?? this.id,
@@ -98,6 +102,7 @@ class Event {
       hasTicket: hasTicket ?? this.hasTicket,
       isTicketUsed: isTicketUsed ?? this.isTicketUsed,
       isCreatedByMe: isCreatedByMe ?? this.isCreatedByMe,
+      isHidden: isHidden ?? this.isHidden,
     );
   }
 
@@ -126,6 +131,7 @@ class Event {
       'hasTicket': hasTicket,
       'isTicketUsed': isTicketUsed,
       'isCreatedByMe': isCreatedByMe,
+      'isHidden': isHidden,
     };
   }
 
@@ -154,6 +160,7 @@ class Event {
       hasTicket: map['hasTicket'] as bool? ?? false,
       isTicketUsed: map['isTicketUsed'] as bool? ?? false,
       isCreatedByMe: map['isCreatedByMe'] as bool? ?? false,
+      isHidden: map['isHidden'] as bool? ?? false,
     );
   }
 }

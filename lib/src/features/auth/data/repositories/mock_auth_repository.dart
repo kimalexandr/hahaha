@@ -93,7 +93,10 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<String?> currentUserId() async => mockUserId;
+  Future<String?> currentUserId() async {
+    if (!_authStateController.value) return null;
+    return mockUserId;
+  }
 
   @override
   Future<void> completeProfile(UserProfile profile) async {
