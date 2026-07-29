@@ -133,6 +133,7 @@ class _AppState extends State<App> {
             ),
             snackBarTheme: SnackBarThemeData(
               behavior: SnackBarBehavior.floating,
+              insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),

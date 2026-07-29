@@ -195,6 +195,70 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<String?> currentUserId() async => _firebaseAuth.currentUser?.uid;
 
   @override
+  Future<AuthAccountInfo> accountInfo() async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) return const AuthAccountInfo();
+    final providers = user.providerData.map((p) => p.providerId).toSet();
+    String? phone = user.phoneNumber;
+    try {
+      final profile = await _persistence.read(user.uid);
+      phone ??= profile?.phoneNumber;
+    } catch (_) {}
+    return AuthAccountInfo(
+      email: user.email,
+      phoneNumber: phone,
+      hasPasswordProvider: providers.contains('password'),
+      hasGoogleProvider: providers.contains('google.com'),
+    );
+  }
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _firebaseAuth.currentUser;
+    final email = user?.email;
+    if (user == null || email == null || email.isEmpty) {
+      throw FirebaseAuthException(
+        code: 'no-current-user',
+        message: 'Нет авторизованного пользователя с email.',
+      );
+    }
+    final providers = user.providerData.map((p) => p.providerId).toSet();
+    if (!providers.contains('password')) {
+      throw FirebaseAuthException(
+        code: 'wrong-provider',
+        message:
+            'Этот аккаунт входит через Google. Смена пароля недоступна — '
+            'используйте Google для входа.',
+      );
+    }
+    final credential = EmailAuthProvider.credential(
+      email: email,
+      password: currentPassword,
+    );
+    try {
+      await user.reauthenticateWithCredential(credential);
+      await user.updatePassword(newPassword);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        throw FirebaseAuthException(
+          code: e.code,
+          message: 'Неверный текущий пароль.',
+        );
+      }
+      if (e.code == 'weak-password') {
+        throw FirebaseAuthException(
+          code: e.code,
+          message: 'Новый пароль слишком слабый (минимум 6 символов).',
+        );
+      }
+      rethrow;
+    }
+  }
+
+  @override
   Future<void> completeProfile(UserProfile profile) async {
     final user = _firebaseAuth.currentUser;
     if (user == null) {
@@ -215,6 +279,7 @@ class FirebaseAuthRepository implements AuthRepository {
       readyForMeeting: profile.readyForMeeting,
       phoneVerified: profile.phoneVerified,
       phoneVerifiedAt: profile.phoneVerifiedAt,
+      phoneNumber: profile.phoneNumber,
       gender: profile.gender,
       birthDate: profile.birthDate,
       lookingFor: profile.lookingFor,

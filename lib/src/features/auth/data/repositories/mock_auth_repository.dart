@@ -99,6 +99,33 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<AuthAccountInfo> accountInfo() async {
+    if (!_authStateController.value) return const AuthAccountInfo();
+    final profile = await _persistence.read(mockUserId);
+    return AuthAccountInfo(
+      email: _registeredAccounts.keys.isNotEmpty
+          ? _registeredAccounts.keys.first
+          : 'demo@eventa.app',
+      phoneNumber: profile?.phoneNumber,
+      hasPasswordProvider: true,
+      hasGoogleProvider: false,
+    );
+  }
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (newPassword.length < 6) {
+      throw Exception('Новый пароль слишком слабый (минимум 6 символов).');
+    }
+    // В демо принимаем любой текущий пароль и обновляем demo-аккаунт.
+    _registeredAccounts['demo@eventa.app'] = newPassword;
+  }
+
+  @override
   Future<void> completeProfile(UserProfile profile) async {
     await Future.delayed(const Duration(milliseconds: 100));
     await _persistence.save(profile);

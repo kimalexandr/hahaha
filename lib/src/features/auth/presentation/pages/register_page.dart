@@ -1,4 +1,5 @@
 import 'package:eventa/src/core/di/injection.dart';
+import 'package:eventa/src/core/ui/app_feedback.dart';
 import 'package:eventa/src/features/auth/data/google_sign_in_helper.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
 import 'package:eventa/src/features/auth/presentation/bloc/auth_bloc.dart';
@@ -77,12 +78,11 @@ class _RegisterPageState extends State<RegisterPage> {
       await _finishAuthSuccess();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_errorMessage(e)),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            duration: const Duration(seconds: 8),
-          ),
+        showAppSnackBar(
+          context,
+          _errorMessage(e),
+          isError: true,
+          details: googleSignInErrorDetails(e),
         );
       }
     } finally {
@@ -97,13 +97,28 @@ class _RegisterPageState extends State<RegisterPage> {
       await _finishAuthSuccess();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_errorMessage(e)),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            duration: const Duration(seconds: 8),
-          ),
-        );
+        final text = e.toString().toLowerCase();
+        final isGoogleConfigError =
+            (e is FirebaseAuthException &&
+                (e.code == 'google-sign-in-failed' ||
+                    e.code == 'google-id-token-missing')) ||
+            text.contains('sign_in_failed') ||
+            text.contains('apiexception') ||
+            text.contains('developer_error') ||
+            text.contains('reauth');
+        if (isGoogleConfigError) {
+          await showGoogleSignInErrorDialog(context, e);
+        } else if (e is FirebaseAuthException &&
+            e.code == 'google-sign-in-cancelled') {
+          showAppSnackBar(context, 'Регистрация через Google отменена');
+        } else {
+          showAppSnackBar(
+            context,
+            _errorMessage(e),
+            isError: true,
+            details: googleSignInErrorDetails(e),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -114,21 +129,22 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Регистрация')),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: AbsorbPointer(
-                  absorbing: _isLoading,
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: AbsorbPointer(
+                    absorbing: _isLoading,
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
                         Text(
                           'Создайте аккаунт',
                           style: Theme.of(context).textTheme.headlineSmall,
@@ -256,6 +272,7 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

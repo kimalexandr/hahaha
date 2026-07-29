@@ -127,6 +127,33 @@ class _HomePageState extends State<HomePage> {
   bool _freeOnly = false;
   DateTime? _selectedFilterDate;
   int _selectedTabIndex = 0;
+
+  bool get _isOrganizer => _profile.role == 'organizer';
+
+  /// Видимые вкладки нижнего меню (без «Мои», если не организатор).
+  List<String> get _navTabIds {
+    return [
+      'feed',
+      if (_isOrganizer) 'mine',
+      'favorites',
+      'tickets',
+      'activity',
+    ];
+  }
+
+  String get _currentTabId {
+    final tabs = _navTabIds;
+    if (tabs.isEmpty) return 'feed';
+    final index = _selectedTabIndex.clamp(0, tabs.length - 1);
+    return tabs[index];
+  }
+
+  void _clampSelectedTab() {
+    final max = _navTabIds.length - 1;
+    if (_selectedTabIndex > max) {
+      _selectedTabIndex = max.clamp(0, max);
+    }
+  }
   int _visibleCount = _pageSize;
   bool _isLoadingMore = false;
   List<String> _notifications = [];
@@ -230,7 +257,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _onListScroll() {
-    if (_selectedTabIndex != 0) return;
+    if (_currentTabId != 'feed') return;
     if (!_scrollController.hasClients) return;
     final nearBottom =
         _scrollController.position.pixels >
@@ -281,13 +308,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   List<Event> _eventsForCurrentTab() {
-    switch (_selectedTabIndex) {
-      case 1:
+    switch (_currentTabId) {
+      case 'mine':
         return _myEvents;
-      case 2:
+      case 'favorites':
         return _events.where((event) => event.isBookmarked).toList();
-      case 3:
+      case 'tickets':
         return _events.where((event) => event.hasTicket).toList();
+      case 'activity':
+        return _activityEvents;
       default:
         return _filteredEvents.take(_visibleCount).toList();
     }
@@ -454,6 +483,7 @@ class _HomePageState extends State<HomePage> {
       if (result == null) return;
       setState(() {
         _profile = result;
+        _clampSelectedTab();
       });
       _syncNotifications();
       _persistState();
@@ -640,28 +670,28 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildTabContent() {
-    switch (_selectedTabIndex) {
-      case 1:
+    switch (_currentTabId) {
+      case 'mine':
         return MyEventsPage(
           events: _myEvents,
-          isOrganizer: _profile.role == 'organizer',
+          isOrganizer: _isOrganizer,
           onOpenEvent: _openEventDetails,
           onEditEvent: _editEvent,
           onDeleteEvent: _deleteEvent,
           onToggleHidden: _toggleEventHidden,
         );
-      case 2:
+      case 'favorites':
         return FavoritesPage(
           events: _events.where((event) => event.isBookmarked).toList(),
           onOpenEvent: _openEventDetails,
         );
-      case 3:
+      case 'tickets':
         return MyTicketsPage(
           events: _events.where((event) => event.hasTicket).toList(),
           onOpenEvent: _openEventDetails,
           onToggleUsed: _toggleTicketUsed,
         );
-      case 4:
+      case 'activity':
         return MyActivityPage(
           events: _activityEvents,
           onOpenEvent: _openEventDetails,
@@ -736,7 +766,7 @@ class _HomePageState extends State<HomePage> {
         bottom: false,
         child: Column(
           children: [
-            if (_selectedTabIndex == 0) ...[
+            if (_currentTabId == 'feed') ...[
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -814,7 +844,7 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       floatingActionButton:
-          (_selectedTabIndex == 0 && _profile.role == 'organizer')
+          (_currentTabId == 'feed' && _isOrganizer)
               ? FloatingActionButton.extended(
                 onPressed: _showAddEventPage,
                 icon: const Icon(Icons.add),
@@ -828,7 +858,7 @@ class _HomePageState extends State<HomePage> {
       bottomNavigationBar: SafeArea(
         top: false,
         child: BottomNavigationBar(
-          currentIndex: _selectedTabIndex,
+          currentIndex: _selectedTabIndex.clamp(0, _navTabIds.length - 1),
           type: BottomNavigationBarType.fixed,
           backgroundColor: cs.surface,
           selectedItemColor: cs.primary,
@@ -841,24 +871,25 @@ class _HomePageState extends State<HomePage> {
               _selectedTabIndex = index;
             });
           },
-          items: const [
-            BottomNavigationBarItem(
+          items: [
+            const BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
               label: 'Лента',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.event_note_outlined),
-              label: 'Мои',
-            ),
-            BottomNavigationBarItem(
+            if (_isOrganizer)
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.event_note_outlined),
+                label: 'Мои',
+              ),
+            const BottomNavigationBarItem(
               icon: Icon(Icons.bookmark_outline),
               label: 'Избранное',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.confirmation_num_outlined),
               label: 'Билеты',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.local_activity_outlined),
               label: 'Активность',
             ),

@@ -22,6 +22,7 @@ import 'package:eventa/src/features/profile/presentation/pages/phone_verify_page
 import 'package:eventa/src/features/profile/presentation/pages/places_quiz_page.dart';
 import 'package:eventa/src/features/profile/presentation/pages/premium_paywall_page.dart';
 import 'package:eventa/src/features/profile/presentation/pages/public_profile_page.dart';
+import 'package:eventa/src/features/profile/presentation/pages/change_password_page.dart';
 import 'package:eventa/src/features/profile/presentation/widgets/account_badges.dart';
 import 'package:eventa/src/features/profile/domain/premium_limits.dart';
 import 'package:eventa/src/features/push/presentation/pages/notification_settings_page.dart';
@@ -366,6 +367,8 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _uploadingPhoto = false;
   int _invitesLeft = PremiumLimits.freeInvitesPerWeek;
   int _createsLeft = PremiumLimits.freeCreatesPerWeek;
+  AuthAccountInfo _account = const AuthAccountInfo();
+  bool _accountLoading = true;
 
   @override
   void initState() {
@@ -387,6 +390,31 @@ class _ProfilePageState extends State<ProfilePage> {
       _photoUrls.isEmpty ? 0 : _photoUrls.length - 1,
     );
     _loadQuota();
+    _loadAccount();
+  }
+
+  Future<void> _loadAccount() async {
+    try {
+      final info = await getIt<AuthRepository>().accountInfo();
+      if (!mounted) return;
+      setState(() {
+        _account = AuthAccountInfo(
+          email: info.email,
+          phoneNumber: info.phoneNumber ?? widget.initialProfile.phoneNumber,
+          hasPasswordProvider: info.hasPasswordProvider,
+          hasGoogleProvider: info.hasGoogleProvider,
+        );
+        _accountLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _account = AuthAccountInfo(
+          phoneNumber: widget.initialProfile.phoneNumber,
+        );
+        _accountLoading = false;
+      });
+    }
   }
 
   Future<void> _loadQuota() async {
@@ -486,6 +514,8 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
     if (verified == true && mounted) {
+      await _loadAccount();
+      if (!mounted) return;
       Navigator.of(context).pop(
         widget.initialProfile.copyWith(
           name: _nameController.text.trim(),
@@ -496,6 +526,7 @@ class _ProfilePageState extends State<ProfilePage> {
           readyForMeeting: _readyForMeeting,
           phoneVerified: true,
           phoneVerifiedAt: DateTime.now(),
+          phoneNumber: _account.phoneNumber,
           gender: _gender,
           birthDate: _birthDate,
           lookingFor: _lookingFor,
@@ -508,6 +539,15 @@ class _ProfilePageState extends State<ProfilePage> {
           premiumUntil: widget.initialProfile.premiumUntil,
         ),
       );
+    }
+  }
+
+  Future<void> _openChangePassword() async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const ChangePasswordPage()),
+    );
+    if (changed == true && mounted) {
+      await _loadAccount();
     }
   }
 
@@ -821,10 +861,76 @@ class _ProfilePageState extends State<ProfilePage> {
                 'Нажмите — главное фото, долгое нажатие — удалить',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
-            if (!widget.initialProfile.phoneVerified)
+            const SizedBox(height: 16),
+            Text('Аккаунт', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            if (_accountLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              )
+            else ...[
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.email_outlined),
+                title: const Text('Email'),
+                subtitle: Text(
+                  (_account.email == null || _account.email!.isEmpty)
+                      ? 'Не указан'
+                      : _account.email!,
+                ),
+              ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.phone_iphone),
+                title: const Text('Телефон'),
+                subtitle: Text(
+                  () {
+                    final phone =
+                        _account.phoneNumber ??
+                        widget.initialProfile.phoneNumber;
+                    if (phone == null || phone.isEmpty) {
+                      return widget.initialProfile.phoneVerified
+                          ? 'Подтверждён'
+                          : 'Не подтверждён';
+                    }
+                    final status =
+                        widget.initialProfile.phoneVerified
+                            ? 'подтверждён'
+                            : 'не подтверждён';
+                    return '$phone · $status';
+                  }(),
+                ),
+                trailing:
+                    widget.initialProfile.phoneVerified
+                        ? const Icon(Icons.verified, color: Colors.green)
+                        : const Icon(Icons.chevron_right),
+                onTap:
+                    widget.initialProfile.phoneVerified
+                        ? null
+                        : _openPhoneVerify,
+              ),
+              if (_account.hasPasswordProvider)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.lock_outline),
+                  title: const Text('Пароль'),
+                  subtitle: const Text('Сменить пароль аккаунта'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: _openChangePassword,
+                )
+              else if (_account.hasGoogleProvider)
+                const ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.lock_outline),
+                  title: Text('Пароль'),
+                  subtitle: Text('Вход через Google — пароль не задаётся'),
+                ),
+            ],
+            if (!widget.initialProfile.phoneVerified)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.phonelink_setup),
                 title: const Text('Подтвердить телефон'),
                 subtitle: const Text('Бейдж доверия в подборе компании'),
                 trailing: const Icon(Icons.chevron_right),

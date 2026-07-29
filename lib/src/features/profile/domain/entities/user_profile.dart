@@ -10,6 +10,8 @@ class UserProfile {
   final bool readyForMeeting;
   final bool phoneVerified;
   final DateTime? phoneVerifiedAt;
+  /// Номер телефона (если подтверждён или указан).
+  final String? phoneNumber;
   final String? gender;
   final DateTime? birthDate;
   final String? lookingFor;
@@ -40,6 +42,7 @@ class UserProfile {
     this.readyForMeeting = false,
     this.phoneVerified = false,
     this.phoneVerifiedAt,
+    this.phoneNumber,
     this.gender,
     this.birthDate,
     this.lookingFor,
@@ -81,6 +84,7 @@ class UserProfile {
     bool? readyForMeeting,
     bool? phoneVerified,
     DateTime? phoneVerifiedAt,
+    String? phoneNumber,
     String? gender,
     DateTime? birthDate,
     String? lookingFor,
@@ -112,6 +116,7 @@ class UserProfile {
           clearPhoneVerifiedAt
               ? null
               : (phoneVerifiedAt ?? this.phoneVerifiedAt),
+      phoneNumber: phoneNumber ?? this.phoneNumber,
       gender: gender ?? this.gender,
       birthDate: clearBirthDate ? null : (birthDate ?? this.birthDate),
       lookingFor: lookingFor ?? this.lookingFor,
@@ -140,6 +145,7 @@ class UserProfile {
       'readyForMeeting': readyForMeeting,
       'phoneVerified': phoneVerified,
       'phoneVerifiedAt': phoneVerifiedAt?.toIso8601String(),
+      'phoneNumber': phoneNumber,
       'gender': gender,
       'birthDate': birthDate?.toIso8601String(),
       'lookingFor': lookingFor,
@@ -193,6 +199,7 @@ class UserProfile {
           verifiedAt is String && verifiedAt.isNotEmpty
               ? DateTime.tryParse(verifiedAt)
               : null,
+      phoneNumber: map['phoneNumber'] as String?,
       gender: map['gender'] as String?,
       birthDate: parsedBirthDate,
       lookingFor: map['lookingFor'] as String?,
