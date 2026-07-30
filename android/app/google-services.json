@@ -1,63 +1,63 @@
 {
-  "project_info": {
-    "project_number": "572832146583",
-    "project_id": "eventus-f450f",
-    "storage_bucket": "eventus-f450f.firebasestorage.app"
-  },
-  "client": [
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:572832146583:android:5bc8ebdb3b41d56759f5d2",
-        "android_client_info": {
-          "package_name": "com.eventus.app"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "572832146583-3fjmq898f7tvskqb9h1tsv1mggnk9hsr.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.eventus.app",
-            "certificate_hash": "ea85262dc7552cc2ad8b09d7ac0f521eb9fcbac3"
-          }
-        },
-        {
-          "client_id": "572832146583-knbelu9mi7v6rrl7audmo80c5tu3ciem.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.eventus.app",
-            "certificate_hash": "13cb14953d3332330be45ae0f1de2f33fdf448b9"
-          }
-        },
-        {
-          "client_id": "572832146583-lu3trepecu39e0c9nh8kfkl39eqi9oje.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.eventus.app",
-            "certificate_hash": "527b1a25ce8b577e2115dc6dedc6d674b4f24197"
-          }
-        },
-        {
-          "client_id": "572832146583-3c8pecftaj1cjmll91i246eg3eo0gp2u.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCtVh4LjxkD3btrdc0aaAUi__hAIeLhcxU"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "572832146583-3c8pecftaj1cjmll91i246eg3eo0gp2u.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    }
-  ],
-  "configuration_version": "1"
+"project_info": {
+"project_number": "572832146583",
+"project_id": "eventus-f450f",
+"storage_bucket": "eventus-f450f.firebasestorage.app"
+},
+"client": [
+{
+"client_info": {
+"mobilesdk_app_id": "1:572832146583:android:5bc8ebdb3b41d56759f5d2",
+"android_client_info": {
+"package_name": "com.eventus.app"
+}
+},
+"oauth_client": [
+{
+"client_id": "572832146583-3fjmq898f7tvskqb9h1tsv1mggnk9hsr.apps.googleusercontent.com",
+"client_type": 1,
+"android_info": {
+"package_name": "com.eventus.app",
+"certificate_hash": "ea85262dc7552cc2ad8b09d7ac0f521eb9fcbac3"
+}
+},
+{
+"client_id": "572832146583-knbelu9mi7v6rrl7audmo80c5tu3ciem.apps.googleusercontent.com",
+"client_type": 1,
+"android_info": {
+"package_name": "com.eventus.app",
+"certificate_hash": "13cb14953d3332330be45ae0f1de2f33fdf448b9"
+}
+},
+{
+"client_id": "572832146583-lu3trepecu39e0c9nh8kfkl39eqi9oje.apps.googleusercontent.com",
+"client_type": 1,
+"android_info": {
+"package_name": "com.eventus.app",
+"certificate_hash": "527b1a25ce8b577e2115dc6dedc6d674b4f24197"
+}
+},
+{
+"client_id": "572832146583-3c8pecftaj1cjmll91i246eg3eo0gp2u.apps.googleusercontent.com",
+"client_type": 3
+}
+],
+"api_key": [
+{
+"current_key": "AIzaSyCtVh4LjxkD3btrdc0aaAUi__hAIeLhcxU"
+}
+],
+"services": {
+"appinvite_service": {
+"other_platform_oauth_client": [
+{
+"client_id": "572832146583-3c8pecftaj1cjmll91i246eg3eo0gp2u.apps.googleusercontent.com",
+"client_type": 3
+}
+]
+}
+}
+}
+],
+"configuration_version": "1"
 }
