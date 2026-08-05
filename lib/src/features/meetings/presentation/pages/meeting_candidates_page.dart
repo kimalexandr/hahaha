@@ -298,7 +298,9 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
                         onPressed: () => _openChat(),
                         icon: const Icon(Icons.chat_bubble_outline),
                         label: Text(
-                          iAmJoined ? 'Чат встречи' : 'Чат встречи (до вступления)',
+                          iAmJoined
+                              ? 'Чат встречи'
+                              : 'Чат встречи (до вступления)',
                         ),
                       ),
                     ),
