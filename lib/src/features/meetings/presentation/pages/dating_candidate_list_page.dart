@@ -203,8 +203,7 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
                         ),
                         trailing: TextButton(
                           onPressed: () async {
-                            final updated = await Navigator.of(context)
-                                .push(
+                            final updated = await Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => const PlacesQuizPage(),
                               ),

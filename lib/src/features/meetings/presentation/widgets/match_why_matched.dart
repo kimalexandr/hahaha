@@ -18,9 +18,9 @@ class MatchWhyMatched extends StatelessWidget {
     if (explanation.isEmpty) {
       return Text(
         emptyHint,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: scheme.onSurfaceVariant,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
       );
     }
 
@@ -29,9 +29,9 @@ class MatchWhyMatched extends StatelessWidget {
       children: [
         Text(
           'Почему подобран',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 6),
         Wrap(
@@ -39,17 +39,9 @@ class MatchWhyMatched extends StatelessWidget {
           runSpacing: 6,
           children: [
             for (final interest in explanation.sharedInterests)
-              _chip(
-                context,
-                label: interest,
-                icon: Icons.interests_outlined,
-              ),
+              _chip(context, label: interest, icon: Icons.interests_outlined),
             for (final hook in explanation.quizHooks)
-              _chip(
-                context,
-                label: hook,
-                icon: Icons.place_outlined,
-              ),
+              _chip(context, label: hook, icon: Icons.place_outlined),
             if (explanation.zodiacNote != null)
               _chip(
                 context,

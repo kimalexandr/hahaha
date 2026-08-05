@@ -79,10 +79,7 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
     return MeetingKind.creatableValues;
   }
 
-  String _resolveVenueId({
-    required Venue? venue,
-    required Event? event,
-  }) {
+  String _resolveVenueId({required Venue? venue, required Event? event}) {
     switch (_meetingKind) {
       case MeetingKind.dating:
         return 'dating';
@@ -199,8 +196,7 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
       if (_meetingKind == MeetingKind.dating) {
         if (!isDatingProfileReady(profile)) {
           if (!mounted) return;
-          final quizMissing =
-              profile == null || !isPlacesQuizComplete(profile);
+          final quizMissing = profile == null || !isPlacesQuizComplete(profile);
           final goQuiz = await showDialog<bool>(
             context: context,
             builder:
@@ -227,9 +223,9 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
                 ),
           );
           if (goQuiz == true && mounted) {
-            await Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const PlacesQuizPage()),
-            );
+            await Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const PlacesQuizPage()));
           }
           return;
         }
@@ -255,22 +251,16 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
         meetingKind: _meetingKind,
         linkedEventId: event?.id,
         linkedEventTitle: event?.title,
-        maxParticipants:
-            _meetingKind.usesDatingFlow ? 2 : _maxParticipants,
+        maxParticipants: _meetingKind.usesDatingFlow ? 2 : _maxParticipants,
         currentParticipantCount: 1,
         participants: [uid],
         participantStatus: {uid: 'joined'},
         createdAt: DateTime.now(),
         desiredMinAge:
-            _meetingKind.usesDatingFlow
-                ? _datingAgeRange.start.round()
-                : null,
+            _meetingKind.usesDatingFlow ? _datingAgeRange.start.round() : null,
         desiredMaxAge:
-            _meetingKind.usesDatingFlow
-                ? _datingAgeRange.end.round()
-                : null,
-        desiredGender:
-            _meetingKind.usesDatingFlow ? _datingLookingFor : null,
+            _meetingKind.usesDatingFlow ? _datingAgeRange.end.round() : null,
+        desiredGender: _meetingKind.usesDatingFlow ? _datingLookingFor : null,
         meetingTags: [
           _meetingKind.name,
           if (_purpose.name.isNotEmpty) _purpose.name,

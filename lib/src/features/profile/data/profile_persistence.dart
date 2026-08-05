@@ -15,10 +15,7 @@ class ProfilePersistence {
 
   /// [requireRemote]: при Firebase-бэкенде ошибка Firestore пробрасывается
   /// (нужно для критичных полей вроде places-quiz).
-  Future<void> save(
-    UserProfile profile, {
-    bool requireRemote = false,
-  }) async {
+  Future<void> save(UserProfile profile, {bool requireRemote = false}) async {
     final normalized = profile.copyWith(
       placesQuizAnswers: normalizePlacesQuizAnswers(profile.placesQuizAnswers),
     );

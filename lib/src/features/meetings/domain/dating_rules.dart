@@ -82,8 +82,7 @@ Map<String, List<String>> normalizePlacesQuizAnswers(
   final result = <String, List<String>>{};
   for (final q in placesQuizQuestions) {
     final id = q['id'] as String;
-    final allowed =
-        (q['options'] as List).map((e) => e.toString()).toSet();
+    final allowed = (q['options'] as List).map((e) => e.toString()).toSet();
     final values = raw[id];
     if (values == null || values.isEmpty) continue;
     final cleaned =

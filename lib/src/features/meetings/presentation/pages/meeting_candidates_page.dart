@@ -342,8 +342,7 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
                                             );
                                           },
                                           leading: AppUserAvatar(
-                                            photoUrl:
-                                                item.profile.mainPhotoUrl,
+                                            photoUrl: item.profile.mainPhotoUrl,
                                             name: item.profile.name,
                                             onTap: () {
                                               openPublicProfile(
@@ -386,10 +385,9 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
                                                             ? 'Пригласить'
                                                             : 'В компанию',
                                                     onPressed:
-                                                        () =>
-                                                            _inviteOrJoinDemo(
-                                                              item,
-                                                            ),
+                                                        () => _inviteOrJoinDemo(
+                                                          item,
+                                                        ),
                                                     icon: const Icon(
                                                       Icons.favorite_border,
                                                     ),
