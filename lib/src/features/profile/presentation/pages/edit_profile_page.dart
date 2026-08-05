@@ -213,7 +213,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Имя, город и интересы нужны, чтобы подбирать встречи и компанию.',
+                        'Имя и интересы нужны, чтобы подбирать встречи и компанию. '
+                        'Город можно указать позже — без него групповой режим доступен, '
+                        'а дейтинг 1:1 покажет подсказку.',
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 18),
@@ -230,13 +232,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _cityController,
-                        decoration: const InputDecoration(labelText: 'Город'),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Укажите город';
-                          }
-                          return null;
-                        },
+                        decoration: const InputDecoration(
+                          labelText: 'Город (необязательно)',
+                          helperText:
+                              'Без города дейтинг 1:1 покажет «скоро в вашем городе»',
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextFormField(

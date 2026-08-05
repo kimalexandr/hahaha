@@ -42,6 +42,7 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
   String _datingLookingFor = 'any';
   late DateTime _scheduledAt;
   bool _saving = false;
+  bool _profileCityEmpty = false;
 
   bool get _isEventMeeting => widget.linkedEvent != null;
   bool get _canCreate => _topicController.text.trim().isNotEmpty && !_saving;
@@ -74,6 +75,7 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
     if (!mounted || profile == null) return;
     setState(() {
       _datingLookingFor = profile.lookingFor ?? 'any';
+      _profileCityEmpty = profile.city.trim().isEmpty;
     });
   }
 
@@ -242,6 +244,18 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (_meetingKind == MeetingKind.dating && _profileCityEmpty)
+            Card(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              child: const ListTile(
+                leading: Icon(Icons.location_city_outlined),
+                title: Text('Функция скоро в вашем городе'),
+                subtitle: Text(
+                  'Город в профиле не указан — дейтинг 1:1 доступен, '
+                  'но подбор по городу пока мягкий. Групповые встречи работают без города.',
+                ),
+              ),
+            ),
           if (event != null)
             Card(
               child: ListTile(

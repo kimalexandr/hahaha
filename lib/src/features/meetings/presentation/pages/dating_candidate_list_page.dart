@@ -33,6 +33,7 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
   RangeValues _ageFilter = const RangeValues(18, 60);
   bool _loading = true;
   String? _uid;
+  bool _cityEmpty = false;
   List<_DatingCandidateView> _candidates = [];
 
   @override
@@ -54,10 +55,12 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
       if (!mounted) return;
       setState(() {
         _loading = false;
+        _cityEmpty = false;
         _candidates = [];
       });
       return;
     }
+    final cityEmpty = me.city.trim().isEmpty;
     final excluded = await _repo.participantIds(widget.meeting.id);
     excluded.add(uid);
     List<UserProfile> people = [];
@@ -98,6 +101,7 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
     if (!mounted) return;
     setState(() {
       _uid = uid;
+      _cityEmpty = cityEmpty;
       _candidates = views;
       _loading = false;
     });
@@ -178,6 +182,18 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
               ? const Center(child: CircularProgressIndicator())
               : Column(
                 children: [
+                  if (_cityEmpty)
+                    Material(
+                      color: Theme.of(context).colorScheme.secondaryContainer,
+                      child: const ListTile(
+                        leading: Icon(Icons.location_city_outlined),
+                        title: Text('Функция скоро в вашем городе'),
+                        subtitle: Text(
+                          'Укажите город в профиле — подбор 1:1 станет точнее. '
+                          'Сейчас можно пользоваться без ограничений.',
+                        ),
+                      ),
+                    ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                     child: Card(

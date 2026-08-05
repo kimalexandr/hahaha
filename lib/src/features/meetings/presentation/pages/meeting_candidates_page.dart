@@ -79,8 +79,6 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
                 (p) =>
                     p.readyForMeeting &&
                     !participantIds.contains(p.ownerId) &&
-                    (p.city.isEmpty ||
-                        p.city.toLowerCase() == fresh.city.toLowerCase()) &&
                     (!_verifiedOnly || p.phoneVerified),
               )
               .toList();
@@ -251,9 +249,13 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final status = _uid == null ? null : meeting.participantStatus[_uid];
     final iAmJoined =
-        meeting.participantStatus[_uid] == 'joined' ||
-        meeting.participants.contains(_uid);
+        status == 'joined' ||
+        (_uid != null && meeting.participants.contains(_uid));
+    final iAmInvited = status == 'invited';
+    // Чат доступен сразу после появления в participants (в т.ч. invited до join).
+    final canOpenChat = iAmJoined || iAmInvited;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Компания на встречу')),
@@ -288,14 +290,16 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
                           _joining ? 'Вступаем…' : 'Вступить в встречу',
                         ),
                       ),
-                    )
-                  else
+                    ),
+                  if (canOpenChat)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                       child: OutlinedButton.icon(
                         onPressed: () => _openChat(),
                         icon: const Icon(Icons.chat_bubble_outline),
-                        label: const Text('Чат встречи'),
+                        label: Text(
+                          iAmJoined ? 'Чат встречи' : 'Чат встречи (до вступления)',
+                        ),
                       ),
                     ),
                   SwitchListTile(
