@@ -4,6 +4,9 @@ const double kInterestsWeight = 0.40;
 const double kPlacesWeight = 0.35;
 const double kZodiacWeight = 0.25;
 
+/// Версия схемы questions/options. При смене id/опций — bump и повторный квиз.
+const int kPlacesQuizVersion = 1;
+
 const List<Map<String, Object>> placesQuizQuestions = [
   {
     'id': 'q1_evening',
@@ -72,6 +75,70 @@ const List<Map<String, Object>> placesQuizQuestions = [
   },
 ];
 
+/// Оставляет только известные question id и допустимые options; сортирует ответы.
+Map<String, List<String>> normalizePlacesQuizAnswers(
+  Map<String, List<String>> raw,
+) {
+  final result = <String, List<String>>{};
+  for (final q in placesQuizQuestions) {
+    final id = q['id'] as String;
+    final allowed =
+        (q['options'] as List).map((e) => e.toString()).toSet();
+    final values = raw[id];
+    if (values == null || values.isEmpty) continue;
+    final cleaned =
+        values
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty && allowed.contains(e))
+            .toSet()
+            .toList()
+          ..sort();
+    if (cleaned.isNotEmpty) result[id] = cleaned;
+  }
+  return result;
+}
+
+bool isPlacesQuizAnswersComplete(
+  Map<String, List<String>> answers, {
+  int? version,
+}) {
+  // Старая схема после bump версии — считаем незаполненной.
+  if (version != null && version < kPlacesQuizVersion) return false;
+  final normalized = normalizePlacesQuizAnswers(answers);
+  for (final q in placesQuizQuestions) {
+    final id = q['id'] as String;
+    if ((normalized[id] ?? const []).isEmpty) return false;
+  }
+  return true;
+}
+
+bool isPlacesQuizComplete(UserProfile profile) {
+  return isPlacesQuizAnswersComplete(
+    profile.placesQuizAnswers,
+    version: profile.placesQuizVersion,
+  );
+}
+
+int placesQuizAnsweredCount(Map<String, List<String>> answers) {
+  return normalizePlacesQuizAnswers(answers).length;
+}
+
+String placesQuizProgressLabel(Map<String, List<String>> answers) {
+  return '${placesQuizAnsweredCount(answers)} из ${placesQuizQuestions.length}';
+}
+
+/// Минимум для создания / участия в дейтинг 1:1.
+bool isDatingProfileReady(UserProfile? profile) {
+  if (profile == null) return false;
+  final birth = profile.birthDate;
+  if (birth == null || calculateAge(birth) < 18) return false;
+  if (profile.gender == null || profile.gender!.trim().isEmpty) return false;
+  if (profile.lookingFor == null || profile.lookingFor!.trim().isEmpty) {
+    return false;
+  }
+  return isPlacesQuizComplete(profile);
+}
+
 String calculateZodiacSign(DateTime birthDate) {
   final day = birthDate.day;
   final month = birthDate.month;
@@ -110,12 +177,14 @@ double placesQuizScore(
   Map<String, List<String>> a,
   Map<String, List<String>> b,
 ) {
-  final commonQuestions = a.keys.toSet().intersection(b.keys.toSet());
+  final na = normalizePlacesQuizAnswers(a);
+  final nb = normalizePlacesQuizAnswers(b);
+  final commonQuestions = na.keys.toSet().intersection(nb.keys.toSet());
   if (commonQuestions.isEmpty) return 0.0;
   var total = 0.0;
   for (final q in commonQuestions) {
-    final setA = a[q]!.map((e) => e.toLowerCase()).toSet();
-    final setB = b[q]!.map((e) => e.toLowerCase()).toSet();
+    final setA = na[q]!.map((e) => e.toLowerCase()).toSet();
+    final setB = nb[q]!.map((e) => e.toLowerCase()).toSet();
     if (setA.isEmpty || setB.isEmpty) continue;
     final intersection = setA.intersection(setB).length;
     final union = setA.union(setB).length;

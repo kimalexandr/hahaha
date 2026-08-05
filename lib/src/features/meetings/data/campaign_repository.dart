@@ -32,6 +32,8 @@ class CampaignRepository {
       'targetGroupSize': campaign.targetGroupSize,
       'linkedMeetingIds': campaign.linkedMeetingIds,
       'status': campaign.status,
+      'billingTier': campaign.billingTier,
+      'promoted': campaign.promoted,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }

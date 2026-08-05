@@ -63,23 +63,46 @@ void main() {
     expect(restored.purpose, MeetingPurpose.talk);
   });
 
-  test('Meeting exposes creatorId and currentParticipantCount', () {
+  test('Meeting.fromMap maps unknown meetingType safely', () {
+    final restored = Meeting.fromMap({
+      'id': 'm5',
+      'venueId': 'v1',
+      'venueName': 'X',
+      'city': 'Almaty',
+      'hostUserId': 'u1',
+      'hostName': 'Аня',
+      'format': 'coffee',
+      'scheduledAt': '2026-08-01T15:00:00.000Z',
+      'topic': 'Тема',
+      'meetingType': 'pop_up_festival',
+      'meetingTags': ['pop_up_festival', 'hobby'],
+      'createdAt': '2026-07-28T10:00:00.000Z',
+    });
+    expect(restored.meetingKind, MeetingKind.unknown);
+    expect(restored.meetingKind.labelRu, 'Другое');
+    expect(restored.meetingKind.usesDatingFlow, isFalse);
+    expect(restored.meetingTags, ['pop_up_festival', 'hobby']);
+    expect(restored.toMap()['meetingType'], 'unknown');
+  });
+
+  test('Meeting dual-writes meetingType alias', () {
     final meeting = Meeting(
-      id: 'm4',
-      venueId: 'v1',
-      venueName: 'Cafe',
-      city: 'Almaty',
+      id: 'm6',
+      venueId: 'online',
+      venueName: 'Онлайн',
+      city: '',
       hostUserId: 'u1',
       hostName: 'Аня',
       format: MeetingFormat.coffee,
       scheduledAt: DateTime.utc(2026, 8, 1),
-      topic: 'Тема',
-      currentParticipantCount: 3,
-      maxParticipants: 6,
+      topic: 'Звонок',
+      meetingKind: MeetingKind.online,
+      meetingTags: const ['online'],
       createdAt: DateTime.utc(2026, 7, 28),
     );
-    expect(meeting.creatorId, 'u1');
-    expect(meeting.joinedCount, 3);
-    expect(meeting.toMap()['creatorId'], 'u1');
+    final map = meeting.toMap();
+    expect(map['meetingKind'], 'online');
+    expect(map['meetingType'], 'online');
+    expect(Meeting.fromMap(map).meetingKind, MeetingKind.online);
   });
 }

@@ -73,7 +73,12 @@ enum MeetingPurpose {
 enum MeetingKind {
   venue,
   event,
-  dating;
+  dating,
+  online,
+  custom,
+
+  /// Неизвестное значение из Firestore/Hive — не падаем при чтении.
+  unknown;
 
   String get labelRu {
     switch (this) {
@@ -83,14 +88,30 @@ enum MeetingKind {
         return 'К событию';
       case MeetingKind.dating:
         return 'Дейтинг';
+      case MeetingKind.online:
+        return 'Онлайн';
+      case MeetingKind.custom:
+        return 'Своя';
+      case MeetingKind.unknown:
+        return 'Другое';
     }
   }
 
+  /// Типы, которые можно выбрать при создании.
+  bool get isCreatable => this != MeetingKind.unknown;
+
+  static List<MeetingKind> get creatableValues =>
+      values.where((e) => e.isCreatable).toList();
+
+  /// Дейтинг-флоу (1:1 + квиз), иначе групповые кандидаты.
+  bool get usesDatingFlow => this == MeetingKind.dating;
+
   static MeetingKind fromString(String? value) {
-    return MeetingKind.values.firstWhere(
-      (e) => e.name == value,
-      orElse: () => MeetingKind.venue,
-    );
+    if (value == null || value.isEmpty) return MeetingKind.venue;
+    for (final e in values) {
+      if (e.name == value) return e;
+    }
+    return MeetingKind.unknown;
   }
 }
 
@@ -144,6 +165,7 @@ class Meeting {
   final int? desiredMinAge;
   final int? desiredMaxAge;
   final String? desiredGender;
+  final List<String> meetingTags;
 
   const Meeting({
     required this.id,
@@ -170,6 +192,7 @@ class Meeting {
     this.desiredMinAge,
     this.desiredMaxAge,
     this.desiredGender,
+    this.meetingTags = const [],
   });
 
   String get creatorId => hostUserId;
@@ -187,6 +210,7 @@ class Meeting {
     int? desiredMinAge,
     int? desiredMaxAge,
     String? desiredGender,
+    List<String>? meetingTags,
   }) {
     return Meeting(
       id: id,
@@ -211,9 +235,10 @@ class Meeting {
       status: status ?? this.status,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      desiredMinAge: desiredMinAge,
-      desiredMaxAge: desiredMaxAge,
-      desiredGender: desiredGender,
+      desiredMinAge: desiredMinAge ?? this.desiredMinAge,
+      desiredMaxAge: desiredMaxAge ?? this.desiredMaxAge,
+      desiredGender: desiredGender ?? this.desiredGender,
+      meetingTags: meetingTags ?? this.meetingTags,
     );
   }
 
@@ -243,6 +268,9 @@ class Meeting {
       'purpose': purpose.name,
       'topic': topic,
       'meetingKind': meetingKind.name,
+      // Дубль для гибкой эволюции схемы (string meetingType).
+      'meetingType': meetingKind.name,
+      'meetingTags': meetingTags,
       'linkedVenueId': linkedVenueId,
       'linkedEventId': linkedEventId,
       'linkedEventTitle': linkedEventTitle,
@@ -303,6 +331,10 @@ class Meeting {
             ? statusMap.values.where((s) => s == 'joined').length
             : participants.length.clamp(1, 6));
 
+    final rawTags = map['meetingTags'];
+    final typeRaw =
+        (map['meetingType'] as String?) ?? (map['meetingKind'] as String?);
+
     return Meeting(
       id: map['id'] as String? ?? '',
       venueId:
@@ -319,7 +351,7 @@ class Meeting {
       note: legacyNote,
       purpose: MeetingPurpose.fromString(map['purpose'] as String?),
       topic: (topic != null && topic.isNotEmpty) ? topic : legacyNote,
-      meetingKind: MeetingKind.fromString(map['meetingKind'] as String?),
+      meetingKind: MeetingKind.fromString(typeRaw),
       linkedEventId: map['linkedEventId'] as String?,
       linkedEventTitle: map['linkedEventTitle'] as String?,
       maxParticipants: (map['maxParticipants'] as num?)?.toInt() ?? 2,
@@ -335,6 +367,10 @@ class Meeting {
       desiredMinAge: (map['desiredMinAge'] as num?)?.toInt(),
       desiredMaxAge: (map['desiredMaxAge'] as num?)?.toInt(),
       desiredGender: map['desiredGender'] as String?,
+      meetingTags:
+          rawTags is List
+              ? rawTags.map((e) => e.toString()).toList()
+              : const [],
     );
   }
 }

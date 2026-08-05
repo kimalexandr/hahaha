@@ -8,6 +8,8 @@ import 'package:eventa/src/features/meetings/data/meeting_interest_storage.dart'
 import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
 import 'package:eventa/src/features/meetings/domain/compatibility_score.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
+import 'package:eventa/src/features/meetings/domain/match_explanation.dart';
+import 'package:eventa/src/features/meetings/presentation/widgets/match_why_matched.dart';
 import 'package:eventa/src/features/profile/data/profile_persistence.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 import 'package:eventa/src/features/profile/domain/premium_limits.dart';
@@ -101,7 +103,7 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
         _CandidateView(
           profile: person,
           score: score,
-          shared: CompatibilityScore.sharedInterests(me, person),
+          explanation: MatchExplanation.between(me, person, dating: false),
           interested: interested,
         ),
       );
@@ -326,60 +328,86 @@ class _MeetingCandidatesPageState extends State<MeetingCandidatesPage> {
                               itemBuilder: (context, index) {
                                 final item = _candidates[index];
                                 return Card(
-                                  child: ListTile(
-                                    onTap: () {
-                                      openPublicProfile(
-                                        context,
-                                        profile: item.profile,
-                                      );
-                                    },
-                                    leading: AppUserAvatar(
-                                      photoUrl: item.profile.mainPhotoUrl,
-                                      name: item.profile.name,
-                                      onTap: () {
-                                        openPublicProfile(
-                                          context,
-                                          profile: item.profile,
-                                        );
-                                      },
-                                    ),
-                                    title: Row(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
                                       children: [
-                                        Expanded(
-                                          child: Text(
-                                            '${item.profile.name} · ${item.score}%',
+                                        ListTile(
+                                          onTap: () {
+                                            openPublicProfile(
+                                              context,
+                                              profile: item.profile,
+                                            );
+                                          },
+                                          leading: AppUserAvatar(
+                                            photoUrl:
+                                                item.profile.mainPhotoUrl,
+                                            name: item.profile.name,
+                                            onTap: () {
+                                              openPublicProfile(
+                                                context,
+                                                profile: item.profile,
+                                              );
+                                            },
+                                          ),
+                                          title: Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  '${item.profile.name} · ${item.score}%',
+                                                ),
+                                              ),
+                                              if (item.profile.phoneVerified)
+                                                const Icon(
+                                                  Icons.verified,
+                                                  size: 18,
+                                                  color: Colors.green,
+                                                ),
+                                            ],
+                                          ),
+                                          subtitle: Text(
+                                            item.profile.bio.isEmpty
+                                                ? 'Без описания'
+                                                : item.profile.bio,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          trailing:
+                                              item.interested
+                                                  ? const Icon(
+                                                    Icons.favorite,
+                                                    color: Colors.red,
+                                                  )
+                                                  : IconButton(
+                                                    tooltip:
+                                                        useFirestoreForMeetings
+                                                            ? 'Пригласить'
+                                                            : 'В компанию',
+                                                    onPressed:
+                                                        () =>
+                                                            _inviteOrJoinDemo(
+                                                              item,
+                                                            ),
+                                                    icon: const Icon(
+                                                      Icons.favorite_border,
+                                                    ),
+                                                  ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            16,
+                                            0,
+                                            16,
+                                            0,
+                                          ),
+                                          child: MatchWhyMatched(
+                                            explanation: item.explanation,
                                           ),
                                         ),
-                                        if (item.profile.phoneVerified)
-                                          const Icon(
-                                            Icons.verified,
-                                            size: 18,
-                                            color: Colors.green,
-                                          ),
                                       ],
                                     ),
-                                    subtitle: Text(
-                                      '${item.profile.bio}\n'
-                                      'Общее: ${item.shared.isEmpty ? '—' : item.shared.join(', ')}',
-                                    ),
-                                    isThreeLine: true,
-                                    trailing:
-                                        item.interested
-                                            ? const Icon(
-                                              Icons.favorite,
-                                              color: Colors.red,
-                                            )
-                                            : IconButton(
-                                              tooltip:
-                                                  useFirestoreForMeetings
-                                                      ? 'Пригласить'
-                                                      : 'В компанию',
-                                              onPressed:
-                                                  () => _inviteOrJoinDemo(item),
-                                              icon: const Icon(
-                                                Icons.favorite_border,
-                                              ),
-                                            ),
                                   ),
                                 );
                               },
@@ -395,12 +423,12 @@ class _CandidateView {
   _CandidateView({
     required this.profile,
     required this.score,
-    required this.shared,
+    required this.explanation,
     required this.interested,
   });
 
   final UserProfile profile;
   final int score;
-  final List<String> shared;
+  final MatchExplanation explanation;
   final bool interested;
 }

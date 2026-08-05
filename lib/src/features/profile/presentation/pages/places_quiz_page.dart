@@ -41,25 +41,56 @@ class _PlacesQuizPageState extends State<PlacesQuizPage> {
     });
   }
 
+  Map<String, List<String>> _serializeAnswers() {
+    return normalizePlacesQuizAnswers({
+      for (final e in _answers.entries)
+        if (e.value.isNotEmpty) e.key: e.value.toList(),
+    });
+  }
+
   Future<void> _finish() async {
+    final serialized = _serializeAnswers();
+    if (!isPlacesQuizAnswersComplete(serialized)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Ответьте на все вопросы (${placesQuizProgressLabel(serialized)})',
+          ),
+        ),
+      );
+      // Перейти к первому незаполненному.
+      for (var i = 0; i < placesQuizQuestions.length; i++) {
+        final id = placesQuizQuestions[i]['id'] as String;
+        if ((serialized[id] ?? const []).isEmpty) {
+          setState(() => _step = i);
+          break;
+        }
+      }
+      return;
+    }
+
     setState(() => _saving = true);
     try {
       final uid = await getIt<AuthRepository>().currentUserId() ?? 'user-1';
       final persistence = ProfilePersistence();
       final existing = await persistence.read(uid);
       if (existing == null) throw StateError('profile_not_found');
-      final serialized = <String, List<String>>{
-        for (final e in _answers.entries)
-          if (e.value.isNotEmpty) e.key: e.value.toList()..sort(),
-      };
-      final updated = existing.copyWith(placesQuizAnswers: serialized);
-      await persistence.save(updated);
+      final updated = existing.copyWith(
+        placesQuizAnswers: serialized,
+        placesQuizVersion: kPlacesQuizVersion,
+      );
+      await persistence.save(updated, requireRemote: true);
       if (!mounted) return;
       Navigator.of(context).pop(updated);
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось сохранить ответы квиза')),
+        const SnackBar(
+          content: Text(
+            'Не удалось сохранить квиз в облако. Проверьте сеть и попробуйте снова.',
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -97,7 +128,7 @@ class _PlacesQuizPageState extends State<PlacesQuizPage> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Можно выбрать несколько вариантов',
+                'Можно выбрать несколько вариантов · схема v$kPlacesQuizVersion',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),

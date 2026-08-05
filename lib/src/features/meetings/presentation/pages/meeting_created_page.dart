@@ -72,7 +72,7 @@ class MeetingCreatedPage extends StatelessWidget {
                   MaterialPageRoute(
                     builder:
                         (_) =>
-                            meeting.meetingKind == MeetingKind.dating
+                            meeting.meetingKind.usesDatingFlow
                                 ? DatingCandidateListPage(meeting: meeting)
                                 : MeetingCandidatesPage(meeting: meeting),
                   ),

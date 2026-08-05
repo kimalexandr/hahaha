@@ -6,6 +6,7 @@ import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
 import 'package:eventa/src/features/profile/data/profile_persistence.dart';
 import 'package:eventa/src/features/profile/domain/premium_limits.dart';
+import 'package:eventa/src/features/profile/presentation/pages/places_quiz_page.dart';
 import 'package:eventa/src/features/profile/presentation/pages/premium_paywall_page.dart';
 import 'package:eventa/src/features/venues/domain/entities/venue.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +21,8 @@ class CreateMeetingPage extends StatefulWidget {
   }) : assert(
          venue != null ||
              linkedEvent != null ||
-             initialKind == MeetingKind.dating,
+             initialKind == null ||
+             initialKind != MeetingKind.unknown,
        );
 
   final Venue? venue;
@@ -67,7 +69,54 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
     _initDatingDefaults();
   }
 
-  bool get _kindLocked => widget.linkedEvent != null || widget.venue != null;
+  bool get _kindsLockedToEvent => widget.linkedEvent != null;
+
+  List<MeetingKind> get _availableKinds {
+    if (widget.linkedEvent != null) return const [MeetingKind.event];
+    if (widget.venue != null) {
+      return const [MeetingKind.venue, MeetingKind.online, MeetingKind.custom];
+    }
+    return MeetingKind.creatableValues;
+  }
+
+  String _resolveVenueId({
+    required Venue? venue,
+    required Event? event,
+  }) {
+    switch (_meetingKind) {
+      case MeetingKind.dating:
+        return 'dating';
+      case MeetingKind.online:
+        return 'online';
+      case MeetingKind.custom:
+        return 'custom';
+      case MeetingKind.event:
+        return event?.id ?? venue?.id ?? '';
+      case MeetingKind.venue:
+      case MeetingKind.unknown:
+        return venue?.id ?? event?.id ?? '';
+    }
+  }
+
+  String _resolveVenueName({
+    required Venue? venue,
+    required Event? event,
+    required String topic,
+  }) {
+    switch (_meetingKind) {
+      case MeetingKind.dating:
+        return 'Dating mode';
+      case MeetingKind.online:
+        return 'Онлайн';
+      case MeetingKind.custom:
+        return topic.isEmpty ? 'Своя встреча' : topic;
+      case MeetingKind.event:
+        return venue?.name ?? event?.place ?? event?.title ?? '';
+      case MeetingKind.venue:
+      case MeetingKind.unknown:
+        return venue?.name ?? event?.place ?? event?.title ?? topic;
+    }
+  }
 
   Future<void> _initDatingDefaults() async {
     final uid = await getIt<AuthRepository>().currentUserId() ?? 'user-1';
@@ -148,20 +197,40 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
         }
       }
       if (_meetingKind == MeetingKind.dating) {
-        final birthDate = profile?.birthDate;
-        if (birthDate == null ||
-            calculateAge(birthDate) < 18 ||
-            profile?.gender == null ||
-            profile?.lookingFor == null ||
-            (profile?.placesQuizAnswers.isEmpty ?? true)) {
+        if (!isDatingProfileReady(profile)) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Для дейтинг-режима заполните профиль 18+ и квиз по местам',
-              ),
-            ),
+          final quizMissing =
+              profile == null || !isPlacesQuizComplete(profile);
+          final goQuiz = await showDialog<bool>(
+            context: context,
+            builder:
+                (ctx) => AlertDialog(
+                  title: const Text('Профиль для дейтинга'),
+                  content: Text(
+                    quizMissing
+                        ? 'Для 1:1 нужен заполненный квиз по местам '
+                            '(${placesQuizProgressLabel(profile?.placesQuizAnswers ?? const {})}). '
+                            'Также укажите пол, «ищу» и возраст 18+.'
+                        : 'Для дейтинг-режима заполните профиль 18+: пол, кого ищете и дату рождения.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Позже'),
+                    ),
+                    if (quizMissing)
+                      FilledButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('Пройти квиз'),
+                      ),
+                  ],
+                ),
           );
+          if (goQuiz == true && mounted) {
+            await Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PlacesQuizPage()),
+            );
+          }
           return;
         }
       }
@@ -173,14 +242,8 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
 
       final draft = Meeting(
         id: 'meeting-${DateTime.now().millisecondsSinceEpoch}',
-        venueId:
-            _meetingKind == MeetingKind.dating
-                ? 'dating'
-                : (venue?.id ?? event?.id ?? ''),
-        venueName:
-            _meetingKind == MeetingKind.dating
-                ? 'Dating mode'
-                : (venue?.name ?? event?.place ?? event?.title ?? ''),
+        venueId: _resolveVenueId(venue: venue, event: event),
+        venueName: _resolveVenueName(venue: venue, event: event, topic: topic),
         city: venue?.city ?? event?.city ?? profile?.city ?? '',
         hostUserId: uid,
         hostName: hostName,
@@ -189,28 +252,29 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
         purpose: _purpose,
         topic: topic,
         note: topic,
-        meetingKind:
-            _meetingKind == MeetingKind.dating
-                ? MeetingKind.dating
-                : (event != null ? MeetingKind.event : MeetingKind.venue),
+        meetingKind: _meetingKind,
         linkedEventId: event?.id,
         linkedEventTitle: event?.title,
         maxParticipants:
-            _meetingKind == MeetingKind.dating ? 2 : _maxParticipants,
+            _meetingKind.usesDatingFlow ? 2 : _maxParticipants,
         currentParticipantCount: 1,
         participants: [uid],
         participantStatus: {uid: 'joined'},
         createdAt: DateTime.now(),
         desiredMinAge:
-            _meetingKind == MeetingKind.dating
+            _meetingKind.usesDatingFlow
                 ? _datingAgeRange.start.round()
                 : null,
         desiredMaxAge:
-            _meetingKind == MeetingKind.dating
+            _meetingKind.usesDatingFlow
                 ? _datingAgeRange.end.round()
                 : null,
         desiredGender:
-            _meetingKind == MeetingKind.dating ? _datingLookingFor : null,
+            _meetingKind.usesDatingFlow ? _datingLookingFor : null,
+        meetingTags: [
+          _meetingKind.name,
+          if (_purpose.name.isNotEmpty) _purpose.name,
+        ],
       );
       final meeting = await _repo.create(draft);
       await _repo.upsertLocalMirror(meeting);
@@ -278,12 +342,12 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
           Wrap(
             spacing: 8,
             children:
-                MeetingKind.values.map((kind) {
+                _availableKinds.map((kind) {
                   return ChoiceChip(
                     label: Text(kind.labelRu),
                     selected: _meetingKind == kind,
                     onSelected:
-                        _kindLocked
+                        _kindsLockedToEvent
                             ? null
                             : (_) => setState(() {
                               _meetingKind = kind;

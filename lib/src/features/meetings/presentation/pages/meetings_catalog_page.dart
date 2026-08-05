@@ -77,7 +77,7 @@ class _MeetingsCatalogPageState extends State<MeetingsCatalogPage> {
                   onSelected: (_) => setState(() => _kindFilter = null),
                 ),
                 const SizedBox(width: 8),
-                ...MeetingKind.values.map(
+                ...MeetingKind.creatableValues.map(
                   (kind) => Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: FilterChip(
@@ -158,8 +158,7 @@ class _MeetingsCatalogPageState extends State<MeetingsCatalogPage> {
                                 MaterialPageRoute(
                                   builder:
                                       (_) =>
-                                          meeting.meetingKind ==
-                                                  MeetingKind.dating
+                                          meeting.meetingKind.usesDatingFlow
                                               ? DatingCandidateListPage(
                                                 meeting: meeting,
                                               )

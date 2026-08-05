@@ -36,6 +36,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   DateTime? _birthDate;
   String? _zodiacSign;
   Map<String, List<String>> _quizAnswers = {};
+  int? _quizVersion;
   final List<String> _photoUrls = [];
   int _mainPhotoIndex = 0;
   String _uid = 'user-1';
@@ -74,6 +75,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         _birthDate = existing.birthDate;
         _zodiacSign = existing.zodiacSign;
         _quizAnswers = Map.of(existing.placesQuizAnswers);
+        _quizVersion = existing.placesQuizVersion;
         _photoUrls.addAll(existing.profilePhotoUrls);
         _mainPhotoIndex = existing.mainPhotoIndexSafe;
       } else if (googlePhoto != null && googlePhoto.isNotEmpty) {
@@ -165,6 +167,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         lookingFor: _lookingFor,
         zodiacSign: _zodiacSign,
         placesQuizAnswers: _quizAnswers,
+        placesQuizVersion: _quizVersion,
         profilePhotoUrls: List.of(_photoUrls),
         mainPhotoIndex: _mainPhotoIndex,
       );
@@ -402,9 +405,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         leading: const Icon(Icons.quiz_outlined),
                         title: const Text('Квиз по местам'),
                         subtitle: Text(
-                          _quizAnswers.isEmpty
-                              ? 'Не заполнен (нужен для дейтинга)'
-                              : 'Заполнено: ${_quizAnswers.length} ответов',
+                          isPlacesQuizAnswersComplete(_quizAnswers)
+                              ? 'Готово · ${placesQuizProgressLabel(_quizAnswers)}'
+                              : 'Не завершён · ${placesQuizProgressLabel(_quizAnswers)} (нужен для дейтинга)',
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () async {
@@ -416,9 +419,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             ),
                           );
                           if (updated == null || !mounted) return;
-                          setState(
-                            () => _quizAnswers = updated.placesQuizAnswers,
-                          );
+                          setState(() {
+                            _quizAnswers = updated.placesQuizAnswers;
+                            _quizVersion = updated.placesQuizVersion;
+                          });
                         },
                       ),
                       const SizedBox(height: 16),

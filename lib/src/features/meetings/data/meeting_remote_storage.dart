@@ -24,6 +24,8 @@ class MeetingRemoteStorage {
       'hostUserId': creatorId,
       'hostName': meeting.hostName,
       'meetingKind': meeting.meetingKind.name,
+      'meetingType': meeting.meetingKind.name,
+      'meetingTags': meeting.meetingTags,
       'linkedVenueId': meeting.linkedVenueId,
       'linkedEventId': meeting.linkedEventId,
       'linkedEventTitle': meeting.linkedEventTitle,
@@ -76,6 +78,7 @@ class MeetingRemoteStorage {
       desiredMinAge: meeting.desiredMinAge,
       desiredMaxAge: meeting.desiredMaxAge,
       desiredGender: meeting.desiredGender,
+      meetingTags: meeting.meetingTags,
     );
   }
 

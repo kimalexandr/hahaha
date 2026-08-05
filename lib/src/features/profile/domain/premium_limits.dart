@@ -1,9 +1,10 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
-/// Бесплатный аккаунт: не больше 3 приглашений и 3 созданий групп в неделю.
+/// Бесплатный аккаунт: лимиты приглашений, созданий групп и кампаний в неделю.
 class PremiumLimits {
   static const int freeInvitesPerWeek = 3;
   static const int freeCreatesPerWeek = 3;
+  static const int freeCampaignsPerWeek = 1;
   static const int premiumPriceTenge = 1990;
 
   static String weekKey([DateTime? now]) {
@@ -31,15 +32,16 @@ class PremiumQuotaService {
     final raw = box.get(uid);
     final week = PremiumLimits.weekKey();
     if (raw is! Map) {
-      return {'invites': 0, 'creates': 0};
+      return {'invites': 0, 'creates': 0, 'campaigns': 0};
     }
     final storedWeek = raw['week']?.toString();
     if (storedWeek != week) {
-      return {'invites': 0, 'creates': 0};
+      return {'invites': 0, 'creates': 0, 'campaigns': 0};
     }
     return {
       'invites': (raw['invites'] as num?)?.toInt() ?? 0,
       'creates': (raw['creates'] as num?)?.toInt() ?? 0,
+      'campaigns': (raw['campaigns'] as num?)?.toInt() ?? 0,
     };
   }
 
@@ -47,12 +49,14 @@ class PremiumQuotaService {
     String uid, {
     required int invites,
     required int creates,
+    required int campaigns,
   }) async {
     final box = await _open();
     await box.put(uid, {
       'week': PremiumLimits.weekKey(),
       'invites': invites,
       'creates': creates,
+      'campaigns': campaigns,
     });
   }
 
@@ -61,6 +65,9 @@ class PremiumQuotaService {
 
   Future<int> createsUsed(String uid) async =>
       (await _usage(uid))['creates'] ?? 0;
+
+  Future<int> campaignsUsed(String uid) async =>
+      (await _usage(uid))['campaigns'] ?? 0;
 
   Future<int> invitesLeft({
     required String uid,
@@ -86,6 +93,18 @@ class PremiumQuotaService {
     );
   }
 
+  Future<int> campaignsLeft({
+    required String uid,
+    required bool isPremium,
+  }) async {
+    if (isPremium) return 999;
+    final used = await campaignsUsed(uid);
+    return (PremiumLimits.freeCampaignsPerWeek - used).clamp(
+      0,
+      PremiumLimits.freeCampaignsPerWeek,
+    );
+  }
+
   Future<bool> canInvite({required String uid, required bool isPremium}) async {
     if (isPremium) return true;
     return (await invitesUsed(uid)) < PremiumLimits.freeInvitesPerWeek;
@@ -99,12 +118,21 @@ class PremiumQuotaService {
     return (await createsUsed(uid)) < PremiumLimits.freeCreatesPerWeek;
   }
 
+  Future<bool> canCreateCampaign({
+    required String uid,
+    required bool isPremium,
+  }) async {
+    if (isPremium) return true;
+    return (await campaignsUsed(uid)) < PremiumLimits.freeCampaignsPerWeek;
+  }
+
   Future<void> recordInvite(String uid) async {
     final u = await _usage(uid);
     await _save(
       uid,
       invites: (u['invites'] ?? 0) + 1,
       creates: u['creates'] ?? 0,
+      campaigns: u['campaigns'] ?? 0,
     );
   }
 
@@ -114,13 +142,24 @@ class PremiumQuotaService {
       uid,
       invites: u['invites'] ?? 0,
       creates: (u['creates'] ?? 0) + 1,
+      campaigns: u['campaigns'] ?? 0,
+    );
+  }
+
+  Future<void> recordCampaign(String uid) async {
+    final u = await _usage(uid);
+    await _save(
+      uid,
+      invites: u['invites'] ?? 0,
+      creates: u['creates'] ?? 0,
+      campaigns: (u['campaigns'] ?? 0) + 1,
     );
   }
 }
 
 class PremiumQuotaExceededException implements Exception {
   const PremiumQuotaExceededException(this.kind);
-  final String kind; // invite | create
+  final String kind; // invite | create | campaign
   @override
   String toString() => 'premium_quota_$kind';
 }

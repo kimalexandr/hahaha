@@ -18,6 +18,9 @@ class UserProfile {
   final String? lookingFor;
   final String? zodiacSign;
   final Map<String, List<String>> placesQuizAnswers;
+
+  /// Версия схемы places-quiz на момент сохранения (см. kPlacesQuizVersion).
+  final int? placesQuizVersion;
   final List<String> profilePhotoUrls;
   final int mainPhotoIndex;
 
@@ -49,6 +52,7 @@ class UserProfile {
     this.lookingFor,
     this.zodiacSign,
     this.placesQuizAnswers = const {},
+    this.placesQuizVersion,
     this.profilePhotoUrls = const [],
     this.mainPhotoIndex = 0,
     this.isPremium = false,
@@ -91,6 +95,7 @@ class UserProfile {
     String? lookingFor,
     String? zodiacSign,
     Map<String, List<String>>? placesQuizAnswers,
+    int? placesQuizVersion,
     List<String>? profilePhotoUrls,
     int? mainPhotoIndex,
     bool? isPremium,
@@ -101,6 +106,7 @@ class UserProfile {
     bool clearPhoneVerifiedAt = false,
     bool clearBirthDate = false,
     bool clearPremiumUntil = false,
+    bool clearPlacesQuizVersion = false,
   }) {
     return UserProfile(
       id: id,
@@ -123,6 +129,10 @@ class UserProfile {
       lookingFor: lookingFor ?? this.lookingFor,
       zodiacSign: zodiacSign ?? this.zodiacSign,
       placesQuizAnswers: placesQuizAnswers ?? this.placesQuizAnswers,
+      placesQuizVersion:
+          clearPlacesQuizVersion
+              ? null
+              : (placesQuizVersion ?? this.placesQuizVersion),
       profilePhotoUrls: profilePhotoUrls ?? this.profilePhotoUrls,
       mainPhotoIndex: mainPhotoIndex ?? this.mainPhotoIndex,
       isPremium: isPremium ?? isPaidProfile ?? this.isPremium,
@@ -152,6 +162,7 @@ class UserProfile {
       'lookingFor': lookingFor,
       'zodiacSign': zodiacSign,
       'placesQuizAnswers': placesQuizAnswers,
+      'placesQuizVersion': placesQuizVersion,
       'profilePhotoUrls': profilePhotoUrls,
       'mainPhotoIndex': mainPhotoIndex,
       'isPremium': isPremium,
@@ -206,6 +217,7 @@ class UserProfile {
       lookingFor: map['lookingFor'] as String?,
       zodiacSign: map['zodiacSign'] as String?,
       placesQuizAnswers: _parseQuizAnswers(rawQuiz),
+      placesQuizVersion: (map['placesQuizVersion'] as num?)?.toInt(),
       profilePhotoUrls:
           rawPhotos is List
               ? rawPhotos.map((e) => e.toString()).toList()

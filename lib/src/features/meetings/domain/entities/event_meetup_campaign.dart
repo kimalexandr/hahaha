@@ -9,6 +9,12 @@ class EventMeetupCampaign {
   final List<String> linkedMeetingIds;
   final String status; // active | closed
 
+  /// free | paid — soft monetization (Premium), без платёжного провайдера.
+  final String billingTier;
+
+  /// Продвижение в карточке события (обычно при paid / Premium).
+  final bool promoted;
+
   const EventMeetupCampaign({
     required this.id,
     required this.eventId,
@@ -19,13 +25,21 @@ class EventMeetupCampaign {
     this.targetGroupSize = 4,
     this.linkedMeetingIds = const [],
     this.status = 'active',
+    this.billingTier = 'free',
+    this.promoted = false,
   });
 
   bool get isActive => status == 'active';
+  bool get isPaid => billingTier == 'paid';
+  bool get isPromoted => promoted || isPaid;
+
+  String get billingLabelRu => isPaid ? 'Premium / оплачено' : 'Бесплатно';
 
   EventMeetupCampaign copyWith({
     List<String>? linkedMeetingIds,
     String? status,
+    String? billingTier,
+    bool? promoted,
   }) {
     return EventMeetupCampaign(
       id: id,
@@ -37,6 +51,8 @@ class EventMeetupCampaign {
       targetGroupSize: targetGroupSize,
       linkedMeetingIds: linkedMeetingIds ?? this.linkedMeetingIds,
       status: status ?? this.status,
+      billingTier: billingTier ?? this.billingTier,
+      promoted: promoted ?? this.promoted,
     );
   }
 
@@ -51,11 +67,14 @@ class EventMeetupCampaign {
       'targetGroupSize': targetGroupSize,
       'linkedMeetingIds': linkedMeetingIds,
       'status': status,
+      'billingTier': billingTier,
+      'promoted': promoted,
     };
   }
 
   factory EventMeetupCampaign.fromMap(Map<dynamic, dynamic> map) {
     final rawMeetings = map['linkedMeetingIds'];
+    final tier = map['billingTier']?.toString() ?? 'free';
     return EventMeetupCampaign(
       id: map['id'] as String? ?? '',
       eventId: map['eventId'] as String? ?? '',
@@ -71,6 +90,8 @@ class EventMeetupCampaign {
               ? rawMeetings.map((e) => e.toString()).toList()
               : const [],
       status: map['status'] as String? ?? 'active',
+      billingTier: tier == 'paid' ? 'paid' : 'free',
+      promoted: map['promoted'] as bool? ?? tier == 'paid',
     );
   }
 }

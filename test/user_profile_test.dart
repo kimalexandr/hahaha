@@ -39,4 +39,19 @@ void main() {
     expect(restored.phoneVerified, isTrue);
     expect(restored.phoneVerifiedAt, DateTime.utc(2026, 7, 28));
   });
+
+  test('UserProfile migrates legacy single-string quiz answers', () {
+    final restored = UserProfile.fromMap({
+      'id': 'u1',
+      'createdAt': DateTime.utc(2026, 1, 1).toIso8601String(),
+      'ownerId': 'u1',
+      'name': 'Аня',
+      'bio': '',
+      'role': 'user',
+      'placesQuizAnswers': {'q1_evening': 'уютное кафе с разговором'},
+    });
+    expect(restored.placesQuizAnswers['q1_evening'], [
+      'уютное кафе с разговором',
+    ]);
+  });
 }

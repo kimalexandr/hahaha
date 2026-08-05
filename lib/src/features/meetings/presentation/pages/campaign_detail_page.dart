@@ -67,6 +67,12 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
                   ),
                   Text('Событие: ${widget.campaign.eventTitle}'),
                   Text('Статус: ${widget.campaign.status}'),
+                  Text('Тариф: ${widget.campaign.billingLabelRu}'),
+                  if (widget.campaign.isPromoted)
+                    Text(
+                      'Продвижение на карточке события включено',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   const SizedBox(height: 12),
                   Text('Встреч создано: ${_meetings.length}'),
                   Text('Участников в компаниях: $participants'),

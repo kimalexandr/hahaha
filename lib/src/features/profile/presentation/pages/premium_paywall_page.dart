@@ -76,8 +76,9 @@ class _PremiumPaywallPageState extends State<PremiumPaywallPage> {
           const _Benefit(text: 'Бейдж Premium в анкете'),
           const SizedBox(height: 8),
           Text(
-            'Бесплатно: до ${PremiumLimits.freeInvitesPerWeek} приглашений '
-            'и до ${PremiumLimits.freeCreatesPerWeek} своих групп в неделю.',
+            'Бесплатно: до ${PremiumLimits.freeInvitesPerWeek} приглашений, '
+            'до ${PremiumLimits.freeCreatesPerWeek} своих групп и '
+            '${PremiumLimits.freeCampaignsPerWeek} кампания сбора в неделю.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 28),

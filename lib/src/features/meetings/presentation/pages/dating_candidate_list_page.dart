@@ -9,9 +9,12 @@ import 'package:eventa/src/features/meetings/data/meeting_interest_storage.dart'
 import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
 import 'package:eventa/src/features/meetings/domain/dating_rules.dart';
 import 'package:eventa/src/features/meetings/domain/entities/meeting.dart';
+import 'package:eventa/src/features/meetings/domain/match_explanation.dart';
+import 'package:eventa/src/features/meetings/presentation/widgets/match_why_matched.dart';
 import 'package:eventa/src/features/profile/data/profile_persistence.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
 import 'package:eventa/src/features/profile/domain/premium_limits.dart';
+import 'package:eventa/src/features/profile/presentation/pages/places_quiz_page.dart';
 import 'package:eventa/src/features/profile/presentation/pages/premium_paywall_page.dart';
 import 'package:eventa/src/features/profile/presentation/pages/public_profile_page.dart';
 import 'package:flutter/material.dart';
@@ -33,7 +36,9 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
   RangeValues _ageFilter = const RangeValues(18, 60);
   bool _loading = true;
   String? _uid;
+  UserProfile? _me;
   bool _cityEmpty = false;
+  bool _quizIncomplete = false;
   List<_DatingCandidateView> _candidates = [];
 
   @override
@@ -55,12 +60,15 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
       if (!mounted) return;
       setState(() {
         _loading = false;
+        _me = null;
         _cityEmpty = false;
+        _quizIncomplete = false;
         _candidates = [];
       });
       return;
     }
     final cityEmpty = me.city.trim().isEmpty;
+    final quizIncomplete = !isPlacesQuizComplete(me);
     final excluded = await _repo.participantIds(widget.meeting.id);
     excluded.add(uid);
     List<UserProfile> people = [];
@@ -75,12 +83,14 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
     final views = <_DatingCandidateView>[];
     for (final person in people) {
       if (excluded.contains(person.ownerId)) continue;
-      if (person.birthDate == null || calculateAge(person.birthDate!) < 18)
+      if (person.birthDate == null || calculateAge(person.birthDate!) < 18) {
         continue;
+      }
       if (_genderFilter != 'any' && person.gender != _genderFilter) continue;
       final age = calculateAge(person.birthDate!);
-      if (age < _ageFilter.start.round() || age > _ageFilter.end.round())
+      if (age < _ageFilter.start.round() || age > _ageFilter.end.round()) {
         continue;
+      }
       final interested = await _interestStorage.hasInterest(
         meetingId: widget.meeting.id,
         fromUserId: uid,
@@ -93,7 +103,7 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
           scorePercent: (score * 100).round(),
           age: age,
           interested: interested,
-          hooks: _quizHooks(me, person),
+          explanation: MatchExplanation.between(me, person, dating: true),
         ),
       );
     }
@@ -101,25 +111,12 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
     if (!mounted) return;
     setState(() {
       _uid = uid;
+      _me = me;
       _cityEmpty = cityEmpty;
+      _quizIncomplete = quizIncomplete;
       _candidates = views;
       _loading = false;
     });
-  }
-
-  List<String> _quizHooks(UserProfile a, UserProfile b) {
-    final hooks = <String>[];
-    for (final entry in a.placesQuizAnswers.entries) {
-      final other = b.placesQuizAnswers[entry.key];
-      if (other == null || other.isEmpty) continue;
-      final shared =
-          entry.value.toSet().intersection(other.toSet()).toList()..sort();
-      for (final option in shared) {
-        hooks.add('Вы оба выбрали: $option');
-        if (hooks.length == 2) return hooks;
-      }
-    }
-    return hooks;
   }
 
   Future<void> _invite(_DatingCandidateView candidate) async {
@@ -191,6 +188,30 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
                         subtitle: Text(
                           'Укажите город в профиле — подбор 1:1 станет точнее. '
                           'Сейчас можно пользоваться без ограничений.',
+                        ),
+                      ),
+                    ),
+                  if (_quizIncomplete)
+                    Material(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      child: ListTile(
+                        leading: const Icon(Icons.quiz_outlined),
+                        title: const Text('Завершите квиз по местам'),
+                        subtitle: Text(
+                          'Для точного подбора нужно ${placesQuizQuestions.length} ответов '
+                          '(${placesQuizProgressLabel(_me?.placesQuizAnswers ?? const {})}).',
+                        ),
+                        trailing: TextButton(
+                          onPressed: () async {
+                            final updated = await Navigator.of(context)
+                                .push(
+                              MaterialPageRoute(
+                                builder: (_) => const PlacesQuizPage(),
+                              ),
+                            );
+                            if (updated != null) _load();
+                          },
+                          child: const Text('Квиз'),
                         ),
                       ),
                     ),
@@ -275,43 +296,64 @@ class _DatingCandidateListPageState extends State<DatingCandidateListPage> {
                                 final item = _candidates[index];
                                 final mainPhoto = item.profile.mainPhotoUrl;
                                 return Card(
-                                  child: ListTile(
-                                    onTap: () {
-                                      openPublicProfile(
-                                        context,
-                                        profile: item.profile,
-                                      );
-                                    },
-                                    leading: AppUserAvatar(
-                                      photoUrl: mainPhoto,
-                                      name: item.profile.name,
-                                      onTap: () {
-                                        openPublicProfile(
-                                          context,
-                                          profile: item.profile,
-                                        );
-                                      },
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        ListTile(
+                                          onTap: () {
+                                            openPublicProfile(
+                                              context,
+                                              profile: item.profile,
+                                            );
+                                          },
+                                          leading: AppUserAvatar(
+                                            photoUrl: mainPhoto,
+                                            name: item.profile.name,
+                                            onTap: () {
+                                              openPublicProfile(
+                                                context,
+                                                profile: item.profile,
+                                              );
+                                            },
+                                          ),
+                                          title: Text(
+                                            '${item.profile.name} · ${item.scorePercent}%',
+                                          ),
+                                          subtitle: Text(
+                                            '${item.age} лет · ${zodiacRuLabel(item.profile.zodiacSign)}',
+                                          ),
+                                          trailing:
+                                              item.interested
+                                                  ? const Icon(
+                                                    Icons.favorite,
+                                                    color: Colors.red,
+                                                  )
+                                                  : IconButton(
+                                                    onPressed:
+                                                        () => _invite(item),
+                                                    icon: const Icon(
+                                                      Icons.favorite_border,
+                                                    ),
+                                                  ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            16,
+                                            0,
+                                            16,
+                                            0,
+                                          ),
+                                          child: MatchWhyMatched(
+                                            explanation: item.explanation,
+                                            emptyHint:
+                                                'Заполните квиз и интересы — появятся зацепки',
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    title: Text(
-                                      '${item.profile.name} · ${item.scorePercent}%',
-                                    ),
-                                    subtitle: Text(
-                                      '${item.age} лет · ${zodiacRuLabel(item.profile.zodiacSign)}\n'
-                                      '${item.hooks.isEmpty ? 'Квиз-зацепки появятся после заполнения ответов' : item.hooks.join(' · ')}',
-                                    ),
-                                    isThreeLine: true,
-                                    trailing:
-                                        item.interested
-                                            ? const Icon(
-                                              Icons.favorite,
-                                              color: Colors.red,
-                                            )
-                                            : IconButton(
-                                              onPressed: () => _invite(item),
-                                              icon: const Icon(
-                                                Icons.favorite_border,
-                                              ),
-                                            ),
                                   ),
                                 );
                               },
@@ -329,12 +371,12 @@ class _DatingCandidateView {
     required this.scorePercent,
     required this.age,
     required this.interested,
-    required this.hooks,
+    required this.explanation,
   });
 
   final UserProfile profile;
   final int scorePercent;
   final int age;
   final bool interested;
-  final List<String> hooks;
+  final MatchExplanation explanation;
 }

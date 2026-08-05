@@ -17,6 +17,7 @@ import 'package:eventa/src/features/home/domain/entities/event.dart';
 import 'package:eventa/src/features/home/domain/entities/event_comment.dart';
 import 'package:eventa/src/features/home/domain/event_geo.dart';
 import 'package:eventa/src/features/profile/domain/entities/user_profile.dart';
+import 'package:eventa/src/features/profile/data/profile_persistence.dart';
 import 'package:eventa/src/features/profile/domain/profile_interest_catalog.dart';
 import 'package:eventa/src/features/profile/presentation/pages/phone_verify_page.dart';
 import 'package:eventa/src/features/profile/presentation/pages/places_quiz_page.dart';
@@ -362,6 +363,7 @@ class _ProfilePageState extends State<ProfilePage> {
   DateTime? _birthDate;
   String? _zodiacSign;
   late Map<String, List<String>> _quizAnswers;
+  int? _quizVersion;
   late List<String> _photoUrls;
   int _mainPhotoIndex = 0;
   bool _uploadingPhoto = false;
@@ -384,6 +386,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _birthDate = widget.initialProfile.birthDate;
     _zodiacSign = widget.initialProfile.zodiacSign;
     _quizAnswers = Map.of(widget.initialProfile.placesQuizAnswers);
+    _quizVersion = widget.initialProfile.placesQuizVersion;
     _photoUrls = List.of(widget.initialProfile.profilePhotoUrls);
     _mainPhotoIndex = widget.initialProfile.mainPhotoIndex.clamp(
       0,
@@ -496,6 +499,7 @@ class _ProfilePageState extends State<ProfilePage> {
         lookingFor: _lookingFor,
         zodiacSign: _zodiacSign,
         placesQuizAnswers: _quizAnswers,
+        placesQuizVersion: _quizVersion,
         profilePhotoUrls: _photoUrls,
         mainPhotoIndex: _mainPhotoIndex,
         isPremium: widget.initialProfile.isPremium,
@@ -532,6 +536,7 @@ class _ProfilePageState extends State<ProfilePage> {
           lookingFor: _lookingFor,
           zodiacSign: _zodiacSign,
           placesQuizAnswers: _quizAnswers,
+          placesQuizVersion: _quizVersion,
           profilePhotoUrls: _photoUrls,
           mainPhotoIndex: _mainPhotoIndex,
           isPremium: widget.initialProfile.isPremium,
@@ -742,6 +747,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             lookingFor: _lookingFor,
                             zodiacSign: _zodiacSign,
                             placesQuizAnswers: _quizAnswers,
+                            placesQuizVersion: _quizVersion,
                             profilePhotoUrls: _photoUrls,
                             mainPhotoIndex: _mainPhotoIndex,
                             isPremium: true,
@@ -763,9 +769,9 @@ class _ProfilePageState extends State<ProfilePage> {
               leading: const Icon(Icons.quiz_outlined),
               title: const Text('Квиз по местам'),
               subtitle: Text(
-                _quizAnswers.isEmpty
-                    ? 'Не заполнен'
-                    : 'Заполнено: ${_quizAnswers.length} ответов',
+                isPlacesQuizAnswersComplete(_quizAnswers)
+                    ? 'Готово · ${placesQuizProgressLabel(_quizAnswers)}'
+                    : 'Не завершён · ${placesQuizProgressLabel(_quizAnswers)}',
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () async {
@@ -773,7 +779,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   MaterialPageRoute(builder: (_) => const PlacesQuizPage()),
                 );
                 if (updated == null || !mounted) return;
-                setState(() => _quizAnswers = updated.placesQuizAnswers);
+                setState(() {
+                  _quizAnswers = updated.placesQuizAnswers;
+                  _quizVersion = updated.placesQuizVersion;
+                });
               },
             ),
             const SizedBox(height: 8),
@@ -1450,6 +1459,25 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
 
   Future<void> _startCampaign() async {
     final uid = await getIt<AuthRepository>().currentUserId() ?? 'user-1';
+    final profile = await ProfilePersistence().read(uid);
+    var isPremium = profile?.hasActivePremium == true;
+    final quota = PremiumQuotaService();
+    final allowed = await quota.canCreateCampaign(
+      uid: uid,
+      isPremium: isPremium,
+    );
+    if (!allowed) {
+      if (!mounted) return;
+      final bought = await openPremiumPaywall(
+        context,
+        reason:
+            'Лимит бесплатного аккаунта: не больше ${PremiumLimits.freeCampaignsPerWeek} кампании сбора в неделю. '
+            'Premium снимает лимит и даёт продвижение кампании на карточке события.',
+      );
+      if (!bought || !mounted) return;
+      isPremium = true;
+    }
+
     final campaign = EventMeetupCampaign(
       id: 'camp-${DateTime.now().millisecondsSinceEpoch}',
       eventId: widget.event.id,
@@ -1458,11 +1486,20 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
       title: 'Собираем компанию на ${widget.event.title}',
       createdAt: DateTime.now(),
       targetGroupSize: 4,
+      billingTier: isPremium ? 'paid' : 'free',
+      promoted: isPremium,
     );
     await CampaignRepository().upsert(campaign);
+    await quota.recordCampaign(uid);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Кампания сбора компании запущена')),
+      SnackBar(
+        content: Text(
+          isPremium
+              ? 'Кампания запущена с продвижением (Premium)'
+              : 'Кампания сбора компании запущена',
+        ),
+      ),
     );
     await _loadMeta();
   }
@@ -1563,7 +1600,11 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
                 color: Theme.of(context).colorScheme.secondaryContainer,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text('Организатор собирает компанию'),
+              child: Text(
+                _campaign!.isPromoted
+                    ? 'Продвижение · Организатор собирает компанию'
+                    : 'Организатор собирает компанию',
+              ),
             ),
           Text(
             _companySeekers == 0

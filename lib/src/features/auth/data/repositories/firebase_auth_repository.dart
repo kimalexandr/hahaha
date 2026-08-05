@@ -285,6 +285,7 @@ class FirebaseAuthRepository implements AuthRepository {
       lookingFor: profile.lookingFor,
       zodiacSign: profile.zodiacSign,
       placesQuizAnswers: profile.placesQuizAnswers,
+      placesQuizVersion: profile.placesQuizVersion,
       profilePhotoUrls: profile.profilePhotoUrls,
       mainPhotoIndex: profile.mainPhotoIndex,
       isPremium: profile.isPremium,
