@@ -81,11 +81,7 @@ class CampaignRepository {
 
   Future<List<EventMeetupCampaign>> readAll() => _local.readAll();
 
-  Future<void> bumpMetric(
-    String campaignId,
-    String key, {
-    int by = 1,
-  }) async {
+  Future<void> bumpMetric(String campaignId, String key, {int by = 1}) async {
     const allowed = {
       'impressions',
       'detailOpens',
