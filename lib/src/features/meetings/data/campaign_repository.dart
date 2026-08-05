@@ -34,6 +34,7 @@ class CampaignRepository {
       'status': campaign.status,
       'billingTier': campaign.billingTier,
       'promoted': campaign.promoted,
+      'metrics': campaign.metrics.toMap(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
@@ -48,13 +49,7 @@ class CampaignRepository {
                 .limit(1)
                 .get();
         if (snap.docs.isNotEmpty) {
-          final data = Map<String, dynamic>.from(snap.docs.first.data());
-          data['id'] = snap.docs.first.id;
-          if (data['createdAt'] is Timestamp) {
-            data['createdAt'] =
-                (data['createdAt'] as Timestamp).toDate().toIso8601String();
-          }
-          final remote = EventMeetupCampaign.fromMap(data);
+          final remote = _fromDoc(snap.docs.first);
           await _local.upsert(remote);
           return remote;
         }
@@ -63,5 +58,74 @@ class CampaignRepository {
     return _local.activeForEvent(eventId);
   }
 
+  /// Активные продвигаемые кампании для слота в ленте.
+  Future<List<EventMeetupCampaign>> readActivePromoted() async {
+    if (_remote) {
+      try {
+        final snap =
+            await _col
+                .where('status', isEqualTo: 'active')
+                .where('promoted', isEqualTo: true)
+                .limit(50)
+                .get();
+        final list = snap.docs.map(_fromDoc).toList();
+        for (final c in list) {
+          await _local.upsert(c);
+        }
+        if (list.isNotEmpty) return list;
+      } catch (_) {}
+    }
+    final all = await _local.readAll();
+    return all.where((c) => c.isActive && c.isPromoted).toList();
+  }
+
   Future<List<EventMeetupCampaign>> readAll() => _local.readAll();
+
+  Future<void> bumpMetric(
+    String campaignId,
+    String key, {
+    int by = 1,
+  }) async {
+    const allowed = {
+      'impressions',
+      'detailOpens',
+      'meetingsLinked',
+      'launches',
+    };
+    if (!allowed.contains(key)) return;
+
+    final all = await _local.readAll();
+    final index = all.indexWhere((c) => c.id == campaignId);
+    if (index < 0) return;
+    final current = all[index];
+    final m = current.metrics;
+    final next = switch (key) {
+      'impressions' => m.copyWith(impressions: m.impressions + by),
+      'detailOpens' => m.copyWith(detailOpens: m.detailOpens + by),
+      'meetingsLinked' => m.copyWith(meetingsLinked: m.meetingsLinked + by),
+      'launches' => m.copyWith(launches: m.launches + by),
+      _ => m,
+    };
+    final updated = current.copyWith(metrics: next);
+    await _local.upsert(updated);
+    if (!_remote) return;
+    try {
+      await _col.doc(campaignId).set({
+        'metrics.$key': FieldValue.increment(by),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {}
+  }
+
+  EventMeetupCampaign _fromDoc(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = Map<String, dynamic>.from(doc.data());
+    data['id'] = doc.id;
+    if (data['createdAt'] is Timestamp) {
+      data['createdAt'] =
+          (data['createdAt'] as Timestamp).toDate().toIso8601String();
+    }
+    return EventMeetupCampaign.fromMap(data);
+  }
 }

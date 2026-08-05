@@ -16,10 +16,12 @@ class CampaignDetailPage extends StatefulWidget {
 class _CampaignDetailPageState extends State<CampaignDetailPage> {
   List<Meeting> _meetings = [];
   bool _loading = true;
+  late EventMeetupCampaign _campaign;
 
   @override
   void initState() {
     super.initState();
+    _campaign = widget.campaign;
     _load();
   }
 
@@ -29,19 +31,21 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
         all
             .where(
               (m) =>
-                  m.linkedEventId == widget.campaign.eventId ||
-                  widget.campaign.linkedMeetingIds.contains(m.id),
+                  m.linkedEventId == _campaign.eventId ||
+                  _campaign.linkedMeetingIds.contains(m.id),
             )
             .toList();
+    final fresh = await CampaignRepository().activeForEvent(_campaign.eventId);
     if (!mounted) return;
     setState(() {
+      if (fresh != null) _campaign = fresh;
       _meetings = linked;
       _loading = false;
     });
   }
 
   Future<void> _closeCampaign() async {
-    final updated = widget.campaign.copyWith(status: 'closed');
+    final updated = _campaign.copyWith(status: 'closed');
     await CampaignRepository().upsert(updated);
     if (!mounted) return;
     Navigator.of(context).pop(updated);
@@ -62,20 +66,27 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   Text(
-                    widget.campaign.title,
+                    _campaign.title,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  Text('Событие: ${widget.campaign.eventTitle}'),
-                  Text('Статус: ${widget.campaign.status}'),
-                  Text('Тариф: ${widget.campaign.billingLabelRu}'),
-                  if (widget.campaign.isPromoted)
+                  Text('Событие: ${_campaign.eventTitle}'),
+                  Text('Статус: ${_campaign.status}'),
+                  Text('Тариф: ${_campaign.billingLabelRu}'),
+                  if (_campaign.isPromoted)
                     Text(
-                      'Продвижение на карточке события включено',
+                      'Продвижение на карточке события и в ленте включено',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   const SizedBox(height: 12),
                   Text('Встреч создано: ${_meetings.length}'),
                   Text('Участников в компаниях: $participants'),
+                  Text(
+                    'Метрики: показы ${_campaign.metrics.impressions} · '
+                    'открытия ${_campaign.metrics.detailOpens} · '
+                    'встречи ${_campaign.metrics.meetingsLinked} · '
+                    'запуски ${_campaign.metrics.launches}',
+                  ),
+                  Text('Целевой размер группы: ${_campaign.targetGroupSize}'),
                   const SizedBox(height: 16),
                   Text(
                     'Встречи',
@@ -94,7 +105,7 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
                         ),
                       ),
                     ),
-                  if (widget.campaign.isActive) ...[
+                  if (_campaign.isActive) ...[
                     const SizedBox(height: 24),
                     OutlinedButton(
                       onPressed: _closeCampaign,

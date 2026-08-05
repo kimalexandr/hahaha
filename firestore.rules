@@ -57,9 +57,19 @@ service cloud.firestore {
     match /eventMeetupCampaigns/{campaignId} {
       allow read: if signedIn();
       allow create: if signedIn()
-                    && request.resource.data.organizerId == request.auth.uid;
-      allow update, delete: if signedIn()
-                            && resource.data.organizerId == request.auth.uid;
+                    && request.resource.data.organizerId == request.auth.uid
+                    && request.resource.data.billingTier in ['free', 'paid']
+                    && request.resource.data.targetGroupSize is int
+                    && request.resource.data.targetGroupSize >= 2
+                    && request.resource.data.targetGroupSize <= 6;
+      // Организатор — полный апдейт; остальные — только metrics (soft analytics).
+      allow update: if signedIn() && (
+        resource.data.organizerId == request.auth.uid
+        || request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['metrics', 'updatedAt'])
+      );
+      allow delete: if signedIn()
+                    && resource.data.organizerId == request.auth.uid;
     }
 
     match /meetings/{meetingId} {

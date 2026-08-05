@@ -25,6 +25,30 @@ void main() {
     expect(restored.promoted, isTrue);
   });
 
+  test('campaign metrics round-trip', () {
+    final campaign = EventMeetupCampaign(
+      id: 'c3',
+      eventId: 'e1',
+      eventTitle: 'Fest',
+      organizerId: 'u1',
+      title: 'Сбор',
+      createdAt: DateTime.utc(2026, 8, 1),
+      billingTier: 'paid',
+      promoted: true,
+      metrics: const CampaignMetrics(
+        impressions: 10,
+        detailOpens: 3,
+        meetingsLinked: 2,
+        launches: 1,
+      ),
+    );
+    final restored = EventMeetupCampaign.fromMap(campaign.toMap());
+    expect(restored.metrics.impressions, 10);
+    expect(restored.metrics.detailOpens, 3);
+    expect(restored.metrics.meetingsLinked, 2);
+    expect(restored.metrics.launches, 1);
+  });
+
   test('legacy campaign maps without billing fields stay free', () {
     final restored = EventMeetupCampaign.fromMap({
       'id': 'c2',

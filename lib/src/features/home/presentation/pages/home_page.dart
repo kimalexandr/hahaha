@@ -13,6 +13,7 @@ import 'package:eventa/src/core/di/injection.dart';
 import 'package:eventa/src/features/auth/domain/repositories/auth_repository.dart';
 import 'package:eventa/src/features/venues/presentation/pages/venues_page.dart';
 import 'package:eventa/src/features/meetings/data/meeting_repository.dart';
+import 'package:eventa/src/features/meetings/data/campaign_repository.dart';
 import 'package:eventa/src/features/meetings/presentation/pages/meetings_catalog_page.dart';
 import 'package:flutter/foundation.dart';
 
@@ -87,6 +88,9 @@ class _HomePageState extends State<HomePage> {
     ),
   ];
   List<Event> _filteredEvents = [];
+  final Set<String> _promotedEventIds = {};
+  final Map<String, String> _promoCampaignIdByEvent = {};
+  final Set<String> _recordedPromoImpressions = {};
   bool _initialLoading = true;
   final Map<String, List<EventComment>> _eventComments = {
     'event-1': [
@@ -218,6 +222,7 @@ class _HomePageState extends State<HomePage> {
     _applyFilters();
     _syncNotifications();
     await _persistState();
+    await _loadPromotedCampaigns();
   }
 
   Future<void> _persistState() async {
@@ -304,8 +309,38 @@ class _HomePageState extends State<HomePage> {
                             event.date.day == _selectedFilterDate!.day)),
               )
               .toList();
+      _filteredEvents.sort((a, b) {
+        final ap = _promotedEventIds.contains(a.id);
+        final bp = _promotedEventIds.contains(b.id);
+        if (ap == bp) return 0;
+        return ap ? -1 : 1;
+      });
       _visibleCount = _pageSize.clamp(0, _filteredEvents.length);
     });
+  }
+
+  Future<void> _loadPromotedCampaigns() async {
+    try {
+      final list = await CampaignRepository().readActivePromoted();
+      if (!mounted) return;
+      setState(() {
+        _promotedEventIds
+          ..clear()
+          ..addAll(list.map((c) => c.eventId));
+        _promoCampaignIdByEvent
+          ..clear()
+          ..addEntries(list.map((c) => MapEntry(c.eventId, c.id)));
+      });
+      _applyFilters();
+    } catch (_) {}
+  }
+
+  Future<void> _recordPromoImpression(String eventId) async {
+    if (_recordedPromoImpressions.contains(eventId)) return;
+    final campaignId = _promoCampaignIdByEvent[eventId];
+    if (campaignId == null) return;
+    _recordedPromoImpressions.add(eventId);
+    await CampaignRepository().bumpMetric(campaignId, 'impressions');
   }
 
   List<Event> _eventsForCurrentTab() {
@@ -323,7 +358,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _reloadEvents() {
+  Future<void> _reloadEvents() async {
     try {
       setState(() {
         _searchController.clear();
@@ -335,10 +370,13 @@ class _HomePageState extends State<HomePage> {
       _applyFilters();
       _syncNotifications();
       _persistState();
+      await _loadPromotedCampaigns();
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Данные обновлены')));
     } catch (_) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Не удалось обновить данные. Попробуйте еще раз.'),
@@ -633,8 +671,15 @@ class _HomePageState extends State<HomePage> {
           );
         }
         final event = items[index];
+        final promo = _promotedEventIds.contains(event.id);
+        if (promo) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _recordPromoImpression(event.id);
+          });
+        }
         return EventCard(
           event: event,
+          campaignPromo: promo,
           onOpen: () => _openEventDetails(event),
           onLike: () {
             setState(() {

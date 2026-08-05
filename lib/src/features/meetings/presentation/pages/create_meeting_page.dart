@@ -18,6 +18,7 @@ class CreateMeetingPage extends StatefulWidget {
     this.venue,
     this.linkedEvent,
     this.initialKind,
+    this.suggestedMaxParticipants,
   }) : assert(
          venue != null ||
              linkedEvent != null ||
@@ -28,6 +29,7 @@ class CreateMeetingPage extends StatefulWidget {
   final Venue? venue;
   final Event? linkedEvent;
   final MeetingKind? initialKind;
+  final int? suggestedMaxParticipants;
 
   @override
   State<CreateMeetingPage> createState() => _CreateMeetingPageState();
@@ -61,6 +63,10 @@ class _CreateMeetingPageState extends State<CreateMeetingPage> {
       _meetingKind = MeetingKind.event;
       _purpose = MeetingPurpose.activity;
       _format = MeetingFormat.walk;
+      final suggested = widget.suggestedMaxParticipants;
+      if (suggested != null) {
+        _maxParticipants = suggested.clamp(2, 6);
+      }
     } else if (widget.initialKind != null) {
       _meetingKind = widget.initialKind!;
     } else {

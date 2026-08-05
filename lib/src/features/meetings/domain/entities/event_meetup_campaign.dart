@@ -1,3 +1,48 @@
+class CampaignMetrics {
+  final int impressions;
+  final int detailOpens;
+  final int meetingsLinked;
+  final int launches;
+
+  const CampaignMetrics({
+    this.impressions = 0,
+    this.detailOpens = 0,
+    this.meetingsLinked = 0,
+    this.launches = 0,
+  });
+
+  CampaignMetrics copyWith({
+    int? impressions,
+    int? detailOpens,
+    int? meetingsLinked,
+    int? launches,
+  }) {
+    return CampaignMetrics(
+      impressions: impressions ?? this.impressions,
+      detailOpens: detailOpens ?? this.detailOpens,
+      meetingsLinked: meetingsLinked ?? this.meetingsLinked,
+      launches: launches ?? this.launches,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+    'impressions': impressions,
+    'detailOpens': detailOpens,
+    'meetingsLinked': meetingsLinked,
+    'launches': launches,
+  };
+
+  factory CampaignMetrics.fromMap(dynamic raw) {
+    if (raw is! Map) return const CampaignMetrics();
+    return CampaignMetrics(
+      impressions: (raw['impressions'] as num?)?.toInt() ?? 0,
+      detailOpens: (raw['detailOpens'] as num?)?.toInt() ?? 0,
+      meetingsLinked: (raw['meetingsLinked'] as num?)?.toInt() ?? 0,
+      launches: (raw['launches'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
 class EventMeetupCampaign {
   final String id;
   final String eventId;
@@ -12,8 +57,10 @@ class EventMeetupCampaign {
   /// free | paid — soft monetization (Premium), без платёжного провайдера.
   final String billingTier;
 
-  /// Продвижение в карточке события (обычно при paid / Premium).
+  /// Продвижение в карточке события / ленте (обычно при paid / Premium).
   final bool promoted;
+
+  final CampaignMetrics metrics;
 
   const EventMeetupCampaign({
     required this.id,
@@ -27,6 +74,7 @@ class EventMeetupCampaign {
     this.status = 'active',
     this.billingTier = 'free',
     this.promoted = false,
+    this.metrics = const CampaignMetrics(),
   });
 
   bool get isActive => status == 'active';
@@ -40,6 +88,8 @@ class EventMeetupCampaign {
     String? status,
     String? billingTier,
     bool? promoted,
+    CampaignMetrics? metrics,
+    int? targetGroupSize,
   }) {
     return EventMeetupCampaign(
       id: id,
@@ -48,11 +98,12 @@ class EventMeetupCampaign {
       organizerId: organizerId,
       title: title,
       createdAt: createdAt,
-      targetGroupSize: targetGroupSize,
+      targetGroupSize: targetGroupSize ?? this.targetGroupSize,
       linkedMeetingIds: linkedMeetingIds ?? this.linkedMeetingIds,
       status: status ?? this.status,
       billingTier: billingTier ?? this.billingTier,
       promoted: promoted ?? this.promoted,
+      metrics: metrics ?? this.metrics,
     );
   }
 
@@ -69,6 +120,7 @@ class EventMeetupCampaign {
       'status': status,
       'billingTier': billingTier,
       'promoted': promoted,
+      'metrics': metrics.toMap(),
     };
   }
 
@@ -92,6 +144,7 @@ class EventMeetupCampaign {
       status: map['status'] as String? ?? 'active',
       billingTier: tier == 'paid' ? 'paid' : 'free',
       promoted: map['promoted'] as bool? ?? tier == 'paid',
+      metrics: CampaignMetrics.fromMap(map['metrics']),
     );
   }
 }

@@ -41,6 +41,7 @@ class EventCard extends StatelessWidget {
   final VoidCallback onBookmark;
   final VoidCallback onBuyTicket;
   final VoidCallback onComment;
+  final bool campaignPromo;
 
   const EventCard({
     super.key,
@@ -51,6 +52,7 @@ class EventCard extends StatelessWidget {
     required this.onBookmark,
     required this.onBuyTicket,
     required this.onComment,
+    this.campaignPromo = false,
   });
 
   @override
@@ -94,6 +96,15 @@ class EventCard extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
+                  if (campaignPromo) ...[
+                    const SizedBox(height: 6),
+                    Chip(
+                      avatar: const Icon(Icons.campaign_outlined, size: 16),
+                      label: const Text('Собирают компанию'),
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ],
                   const SizedBox(height: 4),
                   Wrap(
                     spacing: 6,
@@ -1411,6 +1422,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
   int _companySeekers = 0;
   EventMeetupCampaign? _campaign;
   bool _isEventOwner = false;
+  bool _detailOpenCounted = false;
 
   @override
   void initState() {
@@ -1422,6 +1434,10 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
     final uid = await getIt<AuthRepository>().currentUserId();
     final count = await MeetingRepository().countByLinkedEvent(widget.event.id);
     final campaign = await CampaignRepository().activeForEvent(widget.event.id);
+    if (campaign != null && campaign.isActive && !_detailOpenCounted) {
+      _detailOpenCounted = true;
+      await CampaignRepository().bumpMetric(campaign.id, 'detailOpens');
+    }
     if (!mounted) return;
     setState(() {
       _companySeekers = count;
@@ -1431,19 +1447,24 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
   }
 
   Future<void> _findCompany() async {
+    final campaign = _campaign;
     final meeting = await Navigator.of(context).push<Meeting>(
       MaterialPageRoute(
-        builder: (_) => CreateMeetingPage(linkedEvent: widget.event),
+        builder:
+            (_) => CreateMeetingPage(
+              linkedEvent: widget.event,
+              suggestedMaxParticipants: campaign?.targetGroupSize,
+            ),
       ),
     );
     if (meeting == null || !mounted) return;
 
-    final campaign = _campaign;
     if (campaign != null && campaign.isActive) {
       final updated = campaign.copyWith(
         linkedMeetingIds: [...campaign.linkedMeetingIds, meeting.id],
       );
       await CampaignRepository().upsert(updated);
+      await CampaignRepository().bumpMetric(campaign.id, 'meetingsLinked');
     }
     if (!mounted) return;
 
@@ -1488,6 +1509,7 @@ class _EventDetailsPageState extends State<EventDetailsPage> {
       targetGroupSize: 4,
       billingTier: isPremium ? 'paid' : 'free',
       promoted: isPremium,
+      metrics: const CampaignMetrics(launches: 1),
     );
     await CampaignRepository().upsert(campaign);
     await quota.recordCampaign(uid);
